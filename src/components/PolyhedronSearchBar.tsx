@@ -159,12 +159,12 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
       {/* Expanded Search & Indexing Recommendations Popover */}
       {isOpen && (
         <div
-          className={`absolute left-0 right-0 top-full mt-1.5 rounded-xl border shadow-2xl p-3 z-50 transition-all ${
+          className={`fixed sm:absolute left-2 right-2 sm:left-0 sm:right-auto top-14 sm:top-full mt-1.5 rounded-xl border shadow-2xl p-2.5 sm:p-3 z-50 transition-all ${
             isLightMode
               ? 'bg-white/98 backdrop-blur-lg border-stone-200 text-stone-900'
               : 'bg-slate-900/98 backdrop-blur-lg border-slate-700/80 text-slate-100'
           }`}
-          style={{ width: 'min(92vw, 480px)' }}
+          style={{ maxWidth: '480px', width: 'calc(100vw - 1rem)' }}
         >
           {/* Filter options bar (collapsible or toggleable) */}
           {(showFilters || activeFilterCount > 0) && (
@@ -172,9 +172,9 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
               isLightMode ? 'bg-stone-50 border-stone-200/80' : 'bg-slate-950/80 border-slate-800'
             }`}>
               {/* Discovery status filter */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <span className={`text-[10.5px] ${isLightMode ? 'text-stone-500' : 'text-slate-400'}`}>Discovery:</span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   <button
                     onClick={() => onChangeDiscoveryFilter('all')}
                     className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -209,9 +209,9 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
               </div>
 
               {/* Orbit / Symmetry filter */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <span className={`text-[10.5px] ${isLightMode ? 'text-stone-500' : 'text-slate-400'}`}>Symmetry:</span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   {['all', 'C', 'D', 'O', 'T', 'I'].map(orb => (
                     <button
                       key={orb}
@@ -263,13 +263,13 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
             </button>
           </div>
 
-          {/* Small Multi 3D Views with small box of name */}
+          {/* Indexing Shapes: Straight-line list for phones only, 4-col grid for computers */}
           {recommendations.length === 0 ? (
             <div className="py-6 text-center text-xs text-stone-500">
               No matching shapes found for current search.
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto scrollbar-thin p-0.5">
+            <div className="flex flex-col gap-1.5 sm:grid sm:grid-cols-4 sm:gap-2 max-h-72 overflow-y-auto scrollbar-thin p-0.5">
               {recommendations.map(model => {
                 const fullModel = allModelsMap[model.id] || {
                   ...model,
@@ -283,40 +283,87 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
                   <div
                     key={model.id}
                     onClick={() => handleSelect(model)}
-                    className={`group rounded-lg border flex flex-col overflow-hidden transition-all cursor-pointer ${
+                    className={`group rounded-lg border overflow-hidden transition-all cursor-pointer ${
                       isLightMode
-                        ? 'bg-white hover:bg-stone-50 border-stone-200 hover:border-amber-500 hover:shadow-sm'
+                        ? 'bg-white hover:bg-stone-50 border-stone-200 hover:border-amber-500 hover:shadow-xs'
                         : 'bg-slate-950/80 hover:bg-slate-800 border-slate-800 hover:border-amber-500'
                     }`}
                   >
-                    {/* Small 3D View Canvas */}
-                    <div className="w-full h-18 bg-stone-100/50 dark:bg-slate-900/60 relative overflow-hidden flex items-center justify-center">
-                      <MiniPolyhedron3D
-                        model={fullModel}
-                        isLightMode={isLightMode}
-                        autoSpin={true}
-                        className="w-full h-full"
-                      />
-                      <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.2 rounded font-medium ${
-                        disc.isNew ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-600'
-                      }`}>
-                        {disc.isNew ? 'New' : 'Classic'}
-                      </span>
+                    {/* MOBILE VIEW: Straight-line row item (Phones only) */}
+                    <div className="flex sm:hidden items-center p-2 gap-2.5 w-full">
+                      {/* Mini 3D Preview (48x48) */}
+                      <div className="w-12 h-12 shrink-0 rounded-md bg-stone-100/70 dark:bg-slate-900/80 relative overflow-hidden flex items-center justify-center border border-stone-200/60 dark:border-slate-800">
+                        <MiniPolyhedron3D
+                          model={fullModel}
+                          isLightMode={isLightMode}
+                          autoSpin={true}
+                          className="w-full h-full"
+                        />
+                      </div>
+
+                      {/* Straight Line Info Layout */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-stone-900 dark:text-stone-100 group-hover:text-amber-600 transition-colors">
+                            {model.id}
+                          </span>
+                          <span className="text-[10px] font-mono text-stone-500 dark:text-slate-400">
+                            {model.faceSides}-gon
+                          </span>
+                          <span className={`text-[8.5px] px-1.5 py-0.2 rounded font-medium ml-auto shrink-0 ${
+                            disc.isNew
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
+                              : 'bg-stone-100 text-stone-600 dark:bg-slate-800 dark:text-slate-300'
+                          }`}>
+                            {disc.isNew ? '✨ 2-DoF' : 'Classic'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-stone-500 dark:text-slate-400 mt-1">
+                          <span>{model.numFaces} Faces</span>
+                          <span>•</span>
+                          <span>{model.numVertices} Vertices</span>
+                          <span>•</span>
+                          <span>Orbit {model.orbit}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Arrow */}
+                      <div className="shrink-0 text-stone-300 dark:text-slate-600 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all">
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
                     </div>
 
-                    {/* Small Box with Name */}
-                    <div className="p-1.5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[11px] font-bold text-stone-800 dark:text-stone-200 group-hover:text-amber-600">
-                          {model.id}
-                        </span>
-                        <span className="text-[9px] font-mono text-stone-400">
-                          {model.faceSides}g
+                    {/* COMPUTER / DESKTOP VIEW: The original 4-column card format */}
+                    <div className="hidden sm:flex flex-col w-full">
+                      {/* Small 3D View Canvas */}
+                      <div className="w-full h-18 bg-stone-100/50 dark:bg-slate-900/60 relative overflow-hidden flex items-center justify-center">
+                        <MiniPolyhedron3D
+                          model={fullModel}
+                          isLightMode={isLightMode}
+                          autoSpin={true}
+                          className="w-full h-full"
+                        />
+                        <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.2 rounded font-medium ${
+                          disc.isNew ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-600'
+                        }`}>
+                          {disc.isNew ? 'New' : 'Classic'}
                         </span>
                       </div>
-                      <div className="text-[9px] font-mono text-stone-500 dark:text-slate-400 flex justify-between mt-0.5">
-                        <span>F:{model.numFaces}</span>
-                        <span>V:{model.numVertices}</span>
+
+                      {/* Small Box with Name */}
+                      <div className="p-1.5 flex flex-col justify-between">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[11px] font-bold text-stone-800 dark:text-stone-200 group-hover:text-amber-600">
+                            {model.id}
+                          </span>
+                          <span className="text-[9px] font-mono text-stone-400">
+                            {model.faceSides}g
+                          </span>
+                        </div>
+                        <div className="text-[9px] font-mono text-stone-500 dark:text-slate-400 flex justify-between mt-0.5">
+                          <span>F:{model.numFaces}</span>
+                          <span>V:{model.numVertices}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
