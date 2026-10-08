@@ -2,20 +2,31 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { NoblePolyhedron } from '../types';
 
 interface MiniPolyhedron3DProps {
-  model: NoblePolyhedron;
+  model?: NoblePolyhedron;
+  polyhedron?: NoblePolyhedron;
   isLightMode?: boolean;
   interactive?: boolean;
   className?: string;
   autoSpin?: boolean;
+  animate?: boolean;
+  width?: number;
+  height?: number;
 }
 
 export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
   model,
+  polyhedron,
   isLightMode = true,
   interactive = true,
   className = 'w-full h-28',
   autoSpin = true,
+  animate,
+  width = 180,
+  height = 130,
 }) => {
+  const targetModel = model || polyhedron;
+  const shouldSpin = animate ?? autoSpin;
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotX, setRotX] = useState<number>(0.4);
   const [rotY, setRotY] = useState<number>(0.6);
@@ -25,15 +36,15 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
 
   // Normalize vertices to unit sphere [-1, 1]
   const normalizedVertices = useMemo(() => {
-    if (!model.vertices || model.vertices.length === 0) return [];
+    if (!targetModel || !targetModel.vertices || targetModel.vertices.length === 0) return [];
     let maxR = 0;
-    for (const v of model.vertices) {
+    for (const v of targetModel.vertices) {
       const r = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
       if (r > maxR) maxR = r;
     }
     const scale = maxR > 0 ? 1 / maxR : 1;
-    return model.vertices.map(v => [v[0] * scale, v[1] * scale, v[2] * scale] as [number, number, number]);
-  }, [model.vertices]);
+    return targetModel.vertices.map(v => [v[0] * scale, v[1] * scale, v[2] * scale] as [number, number, number]);
+  }, [targetModel?.vertices]);
 
   // Handle pointer drag for 3D rotation
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -64,7 +75,7 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
 
   // Auto-spin animation
   useEffect(() => {
-    if (!autoSpin) return;
+    if (!shouldSpin) return;
     let lastTime = performance.now();
 
     const loop = (currentTime: number) => {
@@ -81,7 +92,7 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [autoSpin]);
+  }, [shouldSpin]);
 
   // Render polyhedral projection to 2D canvas
   useEffect(() => {
@@ -90,14 +101,18 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
-    ctx.clearRect(0, 0, width, height);
+    const cWidth = canvas.width;
+    const cHeight = canvas.height;
+    ctx.clearRect(0, 0, cWidth, cHeight);
 
-    if (normalizedVertices.length === 0 || !model.faces || model.faces.length === 0) {
+    if (
+      normalizedVertices.length === 0 ||
+      !targetModel?.faces ||
+      targetModel.faces.length === 0
+    ) {
       // Draw placeholder geometric wireframe
       ctx.strokeStyle = isLightMode ? '#d6d3d1' : '#334155';
-      ctx.strokeRect(width * 0.25, height * 0.25, width * 0.5, height * 0.5);
+      ctx.strokeRect(cWidth * 0.25, cHeight * 0.25, cWidth * 0.5, cHeight * 0.5);
       return;
     }
 
@@ -121,9 +136,9 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
       return [x2, y2, z2] as [number, number, number];
     });
 
-    const scale = Math.min(width, height) * 0.42;
-    const cx = width / 2;
-    const cy = height / 2;
+    const scale = Math.min(cWidth, cHeight) * 0.42;
+    const cx = cWidth / 2;
+    const cy = cHeight / 2;
 
     // Light source vector (normalized)
     const lx = 0.5;
@@ -143,7 +158,7 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
     }
 
     const faceList: FaceDepth[] = [];
-    const faces = model.faces;
+    const faces = targetModel.faces;
 
     for (let f = 0; f < faces.length; f++) {
       const idxs = faces[f];
@@ -239,14 +254,14 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
         ctx.fill();
       }
     }
-  }, [normalizedVertices, model.faces, rotX, rotY, isLightMode]);
+  }, [normalizedVertices, targetModel?.faces, rotX, rotY, isLightMode]);
 
   return (
     <div className={`relative flex items-center justify-center overflow-hidden ${className}`}>
       <canvas
         ref={canvasRef}
-        width={180}
-        height={130}
+        width={width}
+        height={height}
         style={{ touchAction: 'none' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

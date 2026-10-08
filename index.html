@@ -15,6 +15,27 @@
     <!-- Google Search Console Site Verification -->
     <meta name="google-site-verification" content="12uCiJpKQjiUNhJ1NcfriED4-pmNfedVJroRTKthng8" />
 
+    <!-- Synchronize with mobile / laptop system dark or light mode before first paint -->
+    <script>
+      (function() {
+        try {
+          var userOverride = localStorage.getItem('noble_theme_user_override');
+          var saved = localStorage.getItem('noble_theme_mode');
+          var isDark = false;
+          if (userOverride === 'true' && saved) {
+            isDark = (saved === 'dark');
+          } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            isDark = true;
+          }
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
+
     <link rel="canonical" href="https://noblepolyhedra.vercel.app/" />
 
     <!-- OpenGraph Social Cards -->
@@ -94,7 +115,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main style="max-width: 1200px; margin: 0 auto; padding: 2rem; font-family: system-ui, sans-serif; color: #1e293b;">
+        <header>
+          <h1>Noble Polyhedra — 3D Figure &amp; Solid Shape Studio | Webtigo Group</h1>
+          <p><strong>Created by Member of Multiverse (Aaditya Wahal) &bull; Powered by Webtigo Group</strong></p>
+          <p>Explore all 146 noble polyhedra organized by symmetry and orbit group in interactive 3D WebGL. Discover isogonal and isohedral 3D solid figures, facet geometry, and continuous deformation families.</p>
+        </header>
+
+        <section>
+          <h2>Noble Polyhedra by Group</h2>
+          <ul>
+            <li><strong>Group C (Cubic Orbit)</strong>: Classical regular hexahedron (C-1) with octahedral symmetry.</li>
+            <li><strong>Group D (Dodecahedral Rigid Orbit)</strong>: 7 classical dodecahedral noble polyhedra (D-1 to D-7).</li>
+            <li><strong>Group I (Icosahedral Rigid Orbit)</strong>: 4 icosahedral solid shapes (I-1 to I-4).</li>
+            <li><strong>Group ID (Icosidodecahedral Orbit)</strong>: 6 edge-transitive polyhedra (ID-1 to ID-6).</li>
+            <li><strong>Group O (Octahedral Orbit)</strong>: Regular octahedron (O-1).</li>
+            <li><strong>Group T (Tetrahedral Orbit)</strong>: Regular tetrahedron (T-1).</li>
+            <li><strong>Group rC &amp; rD (Rectified Orbits)</strong>: Rectified cubic (rC-1) and 19 rectified dodecahedral shapes (rD-1 to rD-19).</li>
+            <li><strong>Group tC, tD, tI, tO (Truncated Orbits)</strong>: Truncated cubic (tC-1), dodecahedral (tD-1 to tD-6), icosahedral fullerene-like shapes (tI-1 to tI-17), and octahedral (tO-1).</li>
+            <li><strong>Group gC &amp; gD (1-DOF Continuous Families)</strong>: 3 cubic (gC-1 to gC-3) and 38 dodecahedral (gD-1 to gD-38) 1-parameter noble solids.</li>
+            <li><strong>Group sC &amp; sD (2-DOF Stevanovi&cacute; Discovery Families)</strong>: 7 cubic (sC-1 to sC-7) and 33 dodecahedral (sD-1 to sD-33) modern 2-parameter continuous noble polyhedra.</li>
+          </ul>
+        </section>
+
+        <section style="margin-top: 2rem; border-top: 1px solid #cbd5e1; padding-top: 1rem;">
+          <h3>Copyright &amp; Acknowledgment</h3>
+          <p><strong>All copyrights to Webtigo and the creator is Member of Multiverse (Aaditya Wahal) also powered by Webtigo group.</strong></p>
+          <p>Mathematical foundations based on Branko Gr&uuml;nbaum (1999) and Stevanovi&cacute; et al. (2020).</p>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -106,25 +106,25 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
     >
       {/* Subheader Filter & Indexing Info Bar */}
       <div
-        className={`px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 border-b shrink-0 text-xs ${
+        className={`px-2 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 border-b shrink-0 text-xs w-full max-w-full overflow-hidden ${
           isLightMode ? 'bg-white border-stone-200 shadow-xs' : 'bg-slate-900/90 border-slate-800'
         }`}
       >
         {/* Left: Summary & Orbit Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-1.5 font-mono text-[11px]">
-            <Layers className="w-3.5 h-3.5 text-amber-600" />
-            Showing {filteredModels.length} of {models.length}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0 max-w-full">
+          <span className="font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-1.5 font-mono text-[11px] shrink-0">
+            <Layers className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>{filteredModels.length} / {models.length}</span>
           </span>
 
-          <span className="text-stone-300 dark:text-slate-700">|</span>
+          <span className="text-stone-300 dark:text-slate-700 hidden xs:inline">|</span>
 
           {/* Orbit / Symmetry Family Selector */}
-          <div className="flex items-center gap-1 overflow-x-auto">
-            <span className={`text-[11px] ${isLightMode ? 'text-stone-500' : 'text-slate-400'}`}>Symmetry:</span>
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
+            <span className={`text-[11px] shrink-0 ${isLightMode ? 'text-stone-500' : 'text-slate-400'}`}>Symmetry:</span>
             <button
               onClick={() => setOrbitFilter('all')}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors shrink-0 ${
                 orbitFilter === 'all'
                   ? isLightMode
                     ? 'bg-stone-900 text-white font-semibold'
@@ -140,7 +140,7 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
               <button
                 key={orb}
                 onClick={() => setOrbitFilter(orb)}
-                className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors shrink-0 ${
                   orbitFilter === orb
                     ? isLightMode
                       ? 'bg-stone-900 text-white font-semibold'
@@ -155,14 +155,14 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
             ))}
           </div>
 
-          <span className="text-stone-300 dark:text-slate-700">|</span>
+          <span className="text-stone-300 dark:text-slate-700 hidden sm:inline">|</span>
 
           {/* Face Sides (n-gon) Filter */}
-          <div className="flex items-center gap-1 overflow-x-auto">
-            <span className={`text-[11px] ${isLightMode ? 'text-stone-500' : 'text-slate-400'}`}>Face:</span>
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
+            <span className={`text-[11px] shrink-0 ${isLightMode ? 'text-stone-500' : 'text-slate-400'}`}>Face:</span>
             <button
               onClick={() => setFaceSidesFilter('all')}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors shrink-0 ${
                 faceSidesFilter === 'all'
                   ? isLightMode
                     ? 'bg-stone-900 text-white font-semibold'
@@ -178,7 +178,7 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
               <button
                 key={sides}
                 onClick={() => setFaceSidesFilter(String(sides))}
-                className={`px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                className={`px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors shrink-0 ${
                   faceSidesFilter === String(sides)
                     ? isLightMode
                       ? 'bg-stone-900 text-white font-semibold'
@@ -195,7 +195,7 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
         </div>
 
         {/* Right: Sort controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
           <span className={`text-[11px] ${isLightMode ? 'text-stone-500' : 'text-slate-400'}`}>Sort:</span>
           <select
             value={sortBy}

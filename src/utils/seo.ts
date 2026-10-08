@@ -164,3 +164,124 @@ export function updateDocumentHeadSEO(model: NobleModelSummary) {
   }
   scriptTag.textContent = JSON.stringify(jsonLd, null, 2);
 }
+
+/**
+ * Updates document head for the Home Page / Index catalog.
+ */
+export function updateHomePageSEO(baseUrl?: string) {
+  if (typeof document === 'undefined') return;
+
+  const origin =
+    baseUrl ||
+    (typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://noblepolyhedra.vercel.app');
+
+  const title = 'Noble Polyhedra — 3D Figure & Solid Shape Studio | Webtigo Group';
+  const description =
+    'Explore all 146 noble polyhedra by group in interactive 3D. The premier 3D solid shape and polyhedral figure index by Webtigo Group, created by Member of Multiverse (Aaditya Wahal).';
+  const canonicalUrl = `${origin}/`;
+
+  document.title = title;
+
+  const setMetaTag = (attribute: string, key: string, content: string) => {
+    let element = document.head.querySelector(`meta[${attribute}="${key}"]`) as HTMLMetaElement | null;
+    if (!element) {
+      element = document.createElement('meta');
+      element.setAttribute(attribute, key);
+      document.head.appendChild(element);
+    }
+    element.setAttribute('content', content);
+  };
+
+  setMetaTag('name', 'description', description);
+  setMetaTag('name', 'copyright', '© 2026 Webtigo. All rights reserved. Powered by Webtigo Group');
+  setMetaTag('name', 'author', 'Member of Multiverse (Aaditya Wahal), Webtigo Group');
+  setMetaTag(
+    'name',
+    'keywords',
+    'noble polyhedra, noble polyhedron, 3D figure, 3D solid shape, 3D geometric shapes, polyhedra, polyhedral geometry, isohedral, isogonal, 3D math models, Webtigo, Webtigo Group, interactive 3D solid figures'
+  );
+
+  let canonicalLink = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!canonicalLink) {
+    canonicalLink = document.createElement('link');
+    canonicalLink.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonicalLink);
+  }
+  canonicalLink.setAttribute('href', canonicalUrl);
+
+  setMetaTag('property', 'og:title', title);
+  setMetaTag('property', 'og:description', description);
+  setMetaTag('property', 'og:url', canonicalUrl);
+  setMetaTag('property', 'og:type', 'website');
+
+  setMetaTag('name', 'twitter:card', 'summary_large_image');
+  setMetaTag('name', 'twitter:title', title);
+  setMetaTag('name', 'twitter:description', description);
+
+  const homeJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${origin}/#website`,
+        url: `${origin}/`,
+        name: 'Noble Polyhedra',
+        alternateName: ['Noble Polyhedron 3D Atlas', '3D Solid Shape Studio', 'Webtigo Noble Polyhedra'],
+        description,
+        publisher: {
+          '@type': 'Organization',
+          '@id': `${origin}/#organization`,
+          name: 'Webtigo Group',
+          url: origin,
+        },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${origin}/?shape={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'WebApplication',
+        '@id': `${origin}/#webapp`,
+        url: `${origin}/`,
+        name: 'Noble Polyhedra 3D Studio',
+        applicationCategory: 'EducationalApplication',
+        operatingSystem: 'All',
+        author: {
+          '@type': 'Person',
+          name: 'Aaditya Wahal',
+          alternateName: 'Member of Multiverse',
+        },
+        creator: {
+          '@type': 'Person',
+          name: 'Aaditya Wahal',
+          alternateName: 'Member of Multiverse',
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Webtigo Group',
+        },
+        copyrightHolder: {
+          '@type': 'Organization',
+          name: 'Webtigo',
+          url: origin,
+        },
+        copyrightYear: 2026,
+        keywords:
+          'noble polyhedra, noble polyhedron, 3D figure, 3D solid shape, geometry studio, Webtigo, Aaditya Wahal, Member of Multiverse',
+      },
+    ],
+  };
+
+  let scriptTag = document.getElementById('seo-polyhedron-jsonld') as HTMLScriptElement | null;
+  if (!scriptTag) {
+    scriptTag = document.createElement('script');
+    scriptTag.id = 'seo-polyhedron-jsonld';
+    scriptTag.type = 'application/ld+json';
+    document.head.appendChild(scriptTag);
+  }
+  scriptTag.textContent = JSON.stringify(homeJsonLd, null, 2);
+}
+

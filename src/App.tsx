@@ -8,6 +8,7 @@ import { NoblePolyhedron, NobleModelSummary, ViewerSettings } from './types';
 import { SAMPLE_MODELS } from './data/sampleModels';
 import { NOBLE_MODELS_INDEX } from './data/modelsIndex';
 import { analyzePolyShape } from './utils/polyGeometry';
+import { HomePage } from './components/HomePage';
 import { Polyhedron3DViewer } from './components/Polyhedron3DViewer';
 import { PolyShapeInspector } from './components/PolyShapeInspector';
 import { PolyhedronHeader } from './components/PolyhedronHeader';
@@ -18,42 +19,84 @@ import { CustomShapeModal } from './components/CustomShapeModal';
 import { MathTheoryModal } from './components/MathTheoryModal';
 import { Maximized2DPlaneModal } from './components/Maximized2DPlaneModal';
 import { ExhibitionCalculatorModal } from './components/ExhibitionCalculatorModal';
-import { updateDocumentHeadSEO } from './utils/seo';
+import { updateDocumentHeadSEO, updateHomePageSEO } from './utils/seo';
 import { X, ChevronLeft, ChevronRight, Loader2, Info } from 'lucide-react';
 
-function resolveModelIdFromUrl(): string {
-  if (typeof window === 'undefined') return 'O-1';
+interface InitialRouteResult {
+  page: 'home' | 'viewer';
+  modelId: string;
+}
+
+function resolveInitialRoute(): InitialRouteResult {
+  if (typeof window === 'undefined') return { page: 'home', modelId: 'D-1' };
   try {
-    const parts = window.location.pathname.split('/').filter(Boolean);
-    if (parts.length > 0) {
-      const candidate = parts[0].toLowerCase() === 'shape' && parts[1] ? parts[1] : parts[0];
-      const match = NOBLE_MODELS_INDEX.find(m => m.id.toLowerCase() === candidate.toLowerCase());
-      if (match) return match.id;
+    const params = new URLSearchParams(window.location.search);
+    const shapeParam = params.get('shape') || params.get('id');
+    if (shapeParam) {
+      const match = NOBLE_MODELS_INDEX.find(m => m.id.toLowerCase() === shapeParam.toLowerCase());
+      if (match) return { page: 'viewer', modelId: match.id };
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const paramShape = params.get('shape') || params.get('id');
-    if (paramShape) {
-      const match = NOBLE_MODELS_INDEX.find(m => m.id.toLowerCase() === paramShape.toLowerCase());
-      if (match) return match.id;
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length > 0) {
+      const first = parts[0].toLowerCase();
+      if (first === 'shape' && parts[1]) {
+        const match = NOBLE_MODELS_INDEX.find(m => m.id.toLowerCase() === parts[1].toLowerCase());
+        if (match) return { page: 'viewer', modelId: match.id };
+      }
+      if (first !== 'home' && first !== 'groups') {
+        const match = NOBLE_MODELS_INDEX.find(m => m.id.toLowerCase() === first);
+        if (match) return { page: 'viewer', modelId: match.id };
+      }
     }
 
     const hash = window.location.hash.replace(/^#\/?(shape\/)?/, '');
-    if (hash) {
+    if (
+      hash &&
+      hash !== 'hero' &&
+      hash !== 'groups' &&
+      hash !== 'theory' &&
+      hash !== 'acknowledgments'
+    ) {
       const match = NOBLE_MODELS_INDEX.find(m => m.id.toLowerCase() === hash.toLowerCase());
-      if (match) return match.id;
+      if (match) return { page: 'viewer', modelId: match.id };
     }
   } catch {
     // fallback
   }
-  return 'O-1';
+  return { page: 'home', modelId: 'D-1' };
+}
+
+function getInitialSystemTheme(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const userOverride = localStorage.getItem('noble_theme_user_override');
+    const saved = localStorage.getItem('noble_theme_mode');
+    if (userOverride === 'true' && saved) {
+      return saved === 'light';
+    }
+    // Automatically sync with mobile or laptop's native dark/light mode
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return false; // phone/laptop in dark mode -> start in dark mode
+    }
+  } catch {
+    // fallback
+  }
+  return true; // default light mode
 }
 
 export default function App() {
-  const initialModelId = useMemo(() => resolveModelIdFromUrl(), []);
-  const [selectedModelId, setSelectedModelId] = useState<string>(initialModelId);
+  const initialRoute = useMemo(() => resolveInitialRoute(), []);
+  const initialThemeIsLight = useMemo(() => getInitialSystemTheme(), []);
+  const [currentPage, setCurrentPage] = useState<'home' | 'viewer'>(initialRoute.page);
+  const [selectedModelId, setSelectedModelId] = useState<string>(initialRoute.modelId);
   const [currentModel, setCurrentModel] = useState<NoblePolyhedron>(() => {
-    return SAMPLE_MODELS[initialModelId] || SAMPLE_MODELS['O-1'] || Object.values(SAMPLE_MODELS)[0];
+    return (
+      SAMPLE_MODELS[initialRoute.modelId] ||
+      SAMPLE_MODELS['D-1'] ||
+      SAMPLE_MODELS['O-1'] ||
+      Object.values(SAMPLE_MODELS)[0]
+    );
   });
   const [selectedFaceIndex, setSelectedFaceIndex] = useState<number>(0);
   const [allModelsMap, setAllModelsMap] = useState<Record<string, NoblePolyhedron>>({
@@ -80,8 +123,8 @@ export default function App() {
   // Inspector panel mode: easy vs advanced
   const [panelMode, setPanelMode] = useState<'easy' | 'advanced'>('easy');
 
-  // Light Mode & Classic Website Theme
-  const [isLightMode, setIsLightMode] = useState<boolean>(true);
+  // Light Mode & Classic Website Theme - Initialized with Device/System Theme
+  const [isLightMode, setIsLightMode] = useState<boolean>(initialThemeIsLight);
   const [isCleanView, setIsCleanView] = useState<boolean>(false);
 
   // Maximized 2D Plane Modal
@@ -96,7 +139,7 @@ export default function App() {
   // Viewer Settings
   const [settings, setSettings] = useState<ViewerSettings>({
     renderMode: 'solid',
-    colorTheme: 'classicLight',
+    colorTheme: initialThemeIsLight ? 'classicLight' : 'slateAmber',
     explodeAmount: 0,
     autoRotate: false,
     rotationSpeed: 1,
@@ -114,9 +157,56 @@ export default function App() {
     setIsLightMode(prev => {
       const next = !prev;
       handleUpdateSettings({ colorTheme: next ? 'classicLight' : 'slateAmber' });
+      try {
+        localStorage.setItem('noble_theme_user_override', 'true');
+        localStorage.setItem('noble_theme_mode', next ? 'light' : 'dark');
+      } catch {
+        // ignore
+      }
       return next;
     });
   };
+
+  // Live Auto-sync with device system theme changes (mobile or laptop toggling dark/light)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      const userOverride = localStorage.getItem('noble_theme_user_override') === 'true';
+      if (!userOverride) {
+        const isSystemDark = e.matches;
+        setIsLightMode(!isSystemDark);
+        handleUpdateSettings({ colorTheme: isSystemDark ? 'slateAmber' : 'classicLight' });
+      }
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+      return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    } else if ((mediaQuery as any).addListener) {
+      (mediaQuery as any).addListener(handleSystemThemeChange);
+      return () => (mediaQuery as any).removeListener(handleSystemThemeChange);
+    }
+  }, []);
+
+  // Sync document root class and mobile browser meta theme-color tag
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isLightMode) {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+
+    let metaTheme = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    if (!metaTheme) {
+      metaTheme = document.createElement('meta');
+      metaTheme.name = 'theme-color';
+      document.head.appendChild(metaTheme);
+    }
+    metaTheme.content = isLightMode ? '#fcfbf9' : '#020617';
+  }, [isLightMode]);
 
   // Preload complete 146 models from public JSON
   useEffect(() => {
@@ -150,19 +240,31 @@ export default function App() {
 
   // Dynamic Document Head SEO & Canonical URL Synchronization
   useEffect(() => {
-    updateDocumentHeadSEO(currentModel);
-
-    // Synchronize browser address bar with canonical shape path without page reload
-    if (typeof window !== 'undefined') {
-      const canonicalPath = `/shape/${encodeURIComponent(currentModel.id)}`;
-      if (
-        window.location.pathname !== canonicalPath &&
-        !window.location.pathname.startsWith('/api')
-      ) {
-        window.history.replaceState({ modelId: currentModel.id }, '', canonicalPath);
+    if (currentPage === 'home') {
+      updateHomePageSEO();
+      if (typeof window !== 'undefined') {
+        if (
+          window.location.pathname !== '/' &&
+          window.location.pathname !== '/home' &&
+          window.location.pathname !== '/groups'
+        ) {
+          window.history.replaceState({ page: 'home' }, '', '/');
+        }
+      }
+    } else {
+      updateDocumentHeadSEO(currentModel);
+      // Synchronize browser address bar with canonical shape path without page reload
+      if (typeof window !== 'undefined') {
+        const canonicalPath = `/shape/${encodeURIComponent(currentModel.id)}`;
+        if (
+          window.location.pathname !== canonicalPath &&
+          !window.location.pathname.startsWith('/api')
+        ) {
+          window.history.replaceState({ page: 'viewer', modelId: currentModel.id }, '', canonicalPath);
+        }
       }
     }
-  }, [currentModel]);
+  }, [currentPage, currentModel]);
 
   // Handle Model Selection
   const handleSelectModel = useCallback(
@@ -185,30 +287,63 @@ export default function App() {
     [allModelsMap]
   );
 
+  const handleSelectModelById = useCallback(
+    (id: string) => {
+      const found = NOBLE_MODELS_INDEX.find(m => m.id === id);
+      if (found) {
+        handleSelectModel(found);
+      }
+    },
+    [handleSelectModel]
+  );
+
+  // Navigation: Launch 3D Viewer
+  const handleStartViewer = useCallback(
+    (modelId?: string) => {
+      if (modelId) {
+        handleSelectModelById(modelId);
+      }
+      setCurrentPage('viewer');
+      setViewMode('single');
+      const targetId = modelId || selectedModelId;
+      if (typeof window !== 'undefined') {
+        window.history.pushState(
+          { page: 'viewer', modelId: targetId },
+          '',
+          `/shape/${encodeURIComponent(targetId)}`
+        );
+      }
+    },
+    [handleSelectModelById, selectedModelId]
+  );
+
+  // Navigation: Return to Home Catalog
+  const handleNavigateHome = useCallback(() => {
+    setCurrentPage('home');
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ page: 'home' }, '', '/');
+    }
+    updateHomePageSEO();
+  }, []);
+
   // Listen for browser Back and Forward history buttons
   useEffect(() => {
     const handlePopState = () => {
-      const modelId = resolveModelIdFromUrl();
-      const found = NOBLE_MODELS_INDEX.find(m => m.id === modelId);
-      if (found) {
-        handleSelectModel(found);
+      const route = resolveInitialRoute();
+      setCurrentPage(route.page);
+      if (route.page === 'viewer') {
+        const found = NOBLE_MODELS_INDEX.find(m => m.id === route.modelId);
+        if (found) {
+          handleSelectModel(found);
+        }
+      } else {
+        updateHomePageSEO();
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [handleSelectModel]);
-
-  const handleSelectModelById = useCallback(
-    (id: string) => {
-      const found = NOBLE_MODELS_INDEX.find(m => m.id === id);
-      if (found) {
-        handleSelectModel(found);
-        setViewMode('single');
-      }
-    },
-    [handleSelectModel]
-  );
 
   // Filtered active list for stepping and carousel
   const activeModelsList = useMemo(() => {
@@ -323,6 +458,17 @@ export default function App() {
     return analyzePolyShape(currentModel.vertices, faceIndices, safeFaceIndex);
   }, [currentModel, selectedFaceIndex]);
 
+  if (currentPage === 'home') {
+    return (
+      <HomePage
+        allModelsMap={allModelsMap}
+        onStartViewer={handleStartViewer}
+        isLightMode={isLightMode}
+        onToggleLightMode={handleToggleLightMode}
+      />
+    );
+  }
+
   return (
     <div
       className={`flex flex-col h-screen h-[100dvh] w-full max-w-full overflow-hidden transition-colors duration-200 ${
@@ -332,6 +478,7 @@ export default function App() {
       {/* Top Header with Closed Search Bar, Filters, Multi/Single Switch & Info Toggle */}
       <PolyhedronHeader
         currentModel={currentModel}
+        onNavigateHome={handleNavigateHome}
         settings={settings}
         onUpdateSettings={handleUpdateSettings}
         onOpenMathInfo={() => setIsMathTheoryOpen(true)}

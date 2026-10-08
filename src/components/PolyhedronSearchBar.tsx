@@ -94,10 +94,10 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="relative z-40 w-full max-w-xs sm:max-w-sm md:max-w-md">
+    <div ref={containerRef} className="relative z-40 w-full min-w-0 max-w-xs sm:max-w-sm md:max-w-md">
       {/* Closed Search Bar input / Pill */}
       <div
-        className={`flex items-center rounded-lg border transition-all duration-200 px-2.5 py-1 ${
+        className={`flex items-center rounded-lg border transition-all duration-200 px-2 sm:px-2.5 py-1 ${
           isOpen
             ? isLightMode
               ? 'bg-white border-amber-600 ring-2 ring-amber-500/20 shadow-md'
@@ -107,7 +107,7 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
               : 'bg-slate-950/80 hover:bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
         }`}
       >
-        <Search className={`w-3.5 h-3.5 shrink-0 ${isLightMode ? 'text-stone-400' : 'text-slate-500'} mr-2`} />
+        <Search className={`w-3.5 h-3.5 shrink-0 ${isLightMode ? 'text-stone-400' : 'text-slate-500'} mr-1.5 sm:mr-2`} />
         
         <input
           ref={inputRef}
@@ -119,7 +119,7 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
             if (!isOpen) setIsOpen(true);
           }}
           placeholder="Search 146 shapes..."
-          className="w-full bg-transparent text-xs outline-none placeholder:text-stone-400 dark:placeholder:text-slate-500"
+          className="w-full min-w-0 bg-transparent text-xs outline-none placeholder:text-stone-400 dark:placeholder:text-slate-500"
         />
 
         {searchQuery && (
@@ -128,7 +128,7 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
               onSearchChange('');
               inputRef.current?.focus();
             }}
-            className="p-0.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
+            className="p-0.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 shrink-0"
             title="Clear search"
           >
             <X className="w-3.5 h-3.5" />
@@ -141,7 +141,7 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
             setIsOpen(true);
             setShowFilters(prev => !prev);
           }}
-          className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 border transition-colors ${
+          className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 border transition-colors shrink-0 ${
             showFilters || activeFilterCount > 0
               ? 'bg-amber-600 text-white border-amber-600 font-semibold'
               : isLightMode
@@ -159,13 +159,40 @@ export const PolyhedronSearchBar: React.FC<PolyhedronSearchBarProps> = ({
       {/* Expanded Search & Indexing Recommendations Popover */}
       {isOpen && (
         <div
-          className={`fixed sm:absolute left-2 right-2 sm:left-0 sm:right-auto top-14 sm:top-full mt-1.5 rounded-xl border shadow-2xl p-2.5 sm:p-3 z-50 transition-all ${
+          className={`fixed sm:absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 top-14 sm:top-full mt-1.5 rounded-xl border shadow-2xl p-2.5 sm:p-3 z-50 transition-all ${
             isLightMode
               ? 'bg-white/98 backdrop-blur-lg border-stone-200 text-stone-900'
               : 'bg-slate-900/98 backdrop-blur-lg border-slate-700/80 text-slate-100'
           }`}
-          style={{ maxWidth: '480px', width: 'calc(100vw - 1rem)' }}
+          style={{ maxWidth: '480px', width: 'min(480px, calc(100vw - 1rem))' }}
         >
+          {/* Header with Close option for mobile */}
+          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-stone-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300 uppercase tracking-wider font-classic-heading">
+                Search &amp; Index ({recommendations.length})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  onSwitchToMultiView();
+                  setIsOpen(false);
+                }}
+                className="text-[10px] text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-0.5 font-medium"
+              >
+                <span>Multi Grid</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded-md text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
+                title="Close Search Popover"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
           {/* Filter options bar (collapsible or toggleable) */}
           {(showFilters || activeFilterCount > 0) && (
             <div className={`p-2 rounded-lg mb-2.5 border text-xs space-y-2 ${
