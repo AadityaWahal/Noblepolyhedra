@@ -1,0 +1,6 @@
+{
+  "name": "Noble Poly Shapes",
+  "description": "Interactive 3D geometry studio for exploring, visualizing, and inspecting face geometries and mathematical properties of all 146 noble polyhedra.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
