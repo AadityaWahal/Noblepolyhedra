@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://noblepolyhedra.vercel.app/sitemap2.xml
+Sitemap: https://noblepolyhedra.vercel.app/sitemap.xml

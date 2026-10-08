@@ -815,7 +815,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
 
               {/* Detailed Attribution Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                {/* 1. Creator & Lead Architect: Member of Multiverse (Aaditya Wahal) */}
                 <div
                   className={`p-6 rounded-2xl border transition-colors ${
                     isLightMode ? 'bg-white border-stone-200' : 'bg-slate-900 border-slate-800'
@@ -830,11 +831,15 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <p className="text-base font-semibold text-amber-700 dark:text-amber-400">
                     Member of Multiverse (Aaditya Wahal)
                   </p>
-                  <p className="text-xs text-stone-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  <p className="text-[11px] font-mono text-stone-400 dark:text-slate-500 mb-2">
+                    Creation &amp; 3D Engine
+                  </p>
+                  <p className="text-xs text-stone-500 dark:text-slate-400 leading-relaxed">
                     Designed and authored the interactive 3D solid shape engine, facet analysis, and geometric coordinate rendering for the Noble Polyhedra catalog.
                   </p>
                 </div>
 
+                {/* 2. Publisher & Copyright Holder: Webtigo Group */}
                 <div
                   className={`p-6 rounded-2xl border transition-colors ${
                     isLightMode ? 'bg-white border-stone-200' : 'bg-slate-900 border-slate-800'
@@ -849,11 +854,38 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <p className="text-base font-semibold text-amber-700 dark:text-amber-400">
                     Webtigo Group
                   </p>
-                  <p className="text-xs text-stone-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  <p className="text-[11px] font-mono text-stone-400 dark:text-slate-500 mb-2">
+                    Webtigo Platform
+                  </p>
+                  <p className="text-xs text-stone-500 dark:text-slate-400 leading-relaxed">
                     All copyrights held by Webtigo. Powered by Webtigo Group. All rights reserved &copy; 2026 Webtigo.
                   </p>
                 </div>
 
+                {/* 3. Initiative & Discovery Idea: Akshat Wahal */}
+                <div
+                  className={`p-6 rounded-2xl border transition-colors ${
+                    isLightMode ? 'bg-white border-stone-200 ring-1 ring-amber-500/20' : 'bg-slate-900 border-slate-800 ring-1 ring-amber-500/30'
+                  }`}
+                >
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-3">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-bold text-sm uppercase tracking-wider font-classic-heading mb-1">
+                    Initiative &amp; Discovery Idea
+                  </h4>
+                  <p className="text-base font-semibold text-amber-700 dark:text-amber-400">
+                    Akshat Wahal
+                  </p>
+                  <p className="text-[11px] font-mono text-stone-400 dark:text-slate-500 mb-2">
+                    Brother of Aaditya Wahal
+                  </p>
+                  <p className="text-xs text-stone-500 dark:text-slate-400 leading-relaxed">
+                    He was the one who gave the idea and the information that new polyhedrons are discovered. The initiative was his, and afterwards the creation was Member of Multiverse's (Aaditya Wahal).
+                  </p>
+                </div>
+
+                {/* 4. Mathematical Foundations: Grünbaum & Stevanović */}
                 <div
                   className={`p-6 rounded-2xl border transition-colors ${
                     isLightMode ? 'bg-white border-stone-200' : 'bg-slate-900 border-slate-800'
@@ -868,7 +900,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <p className="text-base font-semibold text-stone-800 dark:text-slate-200">
                     Grünbaum &amp; Stevanović
                   </p>
-                  <p className="text-xs text-stone-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  <p className="text-[11px] font-mono text-stone-400 dark:text-slate-500 mb-2">
+                    Literature (1999 • 2020)
+                  </p>
+                  <p className="text-xs text-stone-500 dark:text-slate-400 leading-relaxed">
                     Based on the classical classification of noble polyhedra by Branko Grünbaum (1999) and the 2-degree-of-freedom continuous discoveries by Stevanović et al. (2020).
                   </p>
                 </div>

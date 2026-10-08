@@ -170,7 +170,7 @@ export const MathTheoryModal: React.FC<MathTheoryModalProps> = ({
 
             {/* Acknowledgements Section */}
             <div
-              className={`p-3.5 rounded-xl border space-y-1.5 ${
+              className={`p-3.5 rounded-xl border space-y-2 ${
                 isLightMode ? 'bg-stone-50 border-stone-200' : 'bg-slate-950/70 border-slate-800'
               }`}
             >
@@ -178,8 +178,11 @@ export const MathTheoryModal: React.FC<MathTheoryModalProps> = ({
                 isLightMode ? 'text-stone-900' : 'text-amber-300'
               }`}>
                 <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
-                Mathematical Acknowledgements &amp; Discovery Credit
+                Discovery Initiative &amp; Mathematical Acknowledgements
               </h4>
+              <p className={`text-[11px] leading-relaxed ${isLightMode ? 'text-stone-600' : 'text-slate-400'}`}>
+                Special acknowledgment to <strong>Akshat Wahal</strong> (brother of Aaditya Wahal / Member of Multiverse), who conceived the original initiative and shared the vital idea and information that new polyhedra had been discovered. The initiative was his, inspiring the creation and 3D architectural realization by Member of Multiverse (Aaditya Wahal).
+              </p>
               <p className={`text-[11px] leading-relaxed ${isLightMode ? 'text-stone-600' : 'text-slate-400'}`}>
                 Credit and appreciation to <strong>Plasmath</strong> for discovering and systematically solving the modern 2-degree-of-freedom noble polyhedral parameter systems, advancing the classical geometric foundations established by Branko Grünbaum, Peter McMullen, and historical polyhedral geometers.
               </p>

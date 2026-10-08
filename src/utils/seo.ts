@@ -269,8 +269,14 @@ export function updateHomePageSEO(baseUrl?: string) {
           url: origin,
         },
         copyrightYear: 2026,
+        contributor: {
+          '@type': 'Person',
+          name: 'Akshat Wahal',
+          description:
+            'Conceived the original idea and provided the vital information that new polyhedrons are discovered; the initiative was his, inspiring the creation by Member of Multiverse (Aaditya Wahal).',
+        },
         keywords:
-          'noble polyhedra, noble polyhedron, 3D figure, 3D solid shape, geometry studio, Webtigo, Aaditya Wahal, Member of Multiverse',
+          'noble polyhedra, noble polyhedron, 3D figure, 3D solid shape, geometry studio, Webtigo, Aaditya Wahal, Member of Multiverse, Akshat Wahal',
       },
     ],
   };
