@@ -247,10 +247,12 @@ export const MiniPolyhedron3D: React.FC<MiniPolyhedron3DProps> = ({
         ref={canvasRef}
         width={180}
         height={130}
+        style={{ touchAction: 'none' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         className={`w-full h-full object-contain cursor-grab active:cursor-grabbing touch-none select-none`}
         title="Drag to rotate 3D preview"
       />

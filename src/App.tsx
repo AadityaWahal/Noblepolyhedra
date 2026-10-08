@@ -325,7 +325,7 @@ export default function App() {
 
   return (
     <div
-      className={`flex flex-col h-screen w-screen overflow-hidden transition-colors duration-200 ${
+      className={`flex flex-col h-screen h-[100dvh] w-full max-w-full overflow-hidden transition-colors duration-200 ${
         isLightMode ? 'bg-[#fcfbf9] text-stone-900' : 'bg-slate-950 text-slate-100'
       } font-sans`}
     >

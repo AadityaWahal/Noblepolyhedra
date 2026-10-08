@@ -16,6 +16,8 @@ import {
   Layers,
   Play,
   Pause,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 
 interface Polyhedron3DViewerProps {
@@ -105,6 +107,48 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
   const sphericalRef = useRef({ radius: 4.5, theta: Math.PI / 4, phi: Math.PI / 3 });
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
 
+  // Multi-touch & Pinch gesture tracking for mobile devices
+  const touchTrackingRef = useRef<{
+    isPinching: boolean;
+    lastX: number;
+    lastY: number;
+    startX: number;
+    startY: number;
+    startTime: number;
+    lastPinchDist: number;
+  }>({
+    isPinching: false,
+    lastX: 0,
+    lastY: 0,
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    lastPinchDist: 0,
+  });
+
+  // Pick face raycasting callback (shared by desktop click & mobile single-finger tap)
+  const pickFaceAtCoords = useCallback((clientX: number, clientY: number) => {
+    if (!containerRef.current || !cameraRef.current || faceMeshesRef.current.length === 0) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
+    const intersects = raycaster.intersectObjects(faceMeshesRef.current, false);
+
+    if (intersects.length > 0) {
+      const hitFace = intersects[0].object.userData.faceIndex;
+      onSelectFace(hitFace);
+    }
+  }, [onSelectFace]);
+
+  const onSelectFaceRef = useRef(pickFaceAtCoords);
+  useEffect(() => {
+    onSelectFaceRef.current = pickFaceAtCoords;
+  }, [pickFaceAtCoords]);
+
   // Keyboard shortcut listener for ArrowLeft, ArrowRight, Space
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -162,6 +206,11 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = false;
     container.innerHTML = '';
+    // Enforce touch-action none on canvas to block browser default touch interventions
+    renderer.domElement.style.touchAction = 'none';
+    renderer.domElement.style.userSelect = 'none';
+    renderer.domElement.style.webkitUserSelect = 'none';
+    (renderer.domElement.style as any).webkitTouchCallout = 'none';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -202,6 +251,109 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
     };
     renderLoop();
 
+    // Native Non-Passive Touch Event Handlers
+    // Explicitly call e.preventDefault() so mobile browsers NEVER zoom the whole webpage or trigger elastic bounce
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      isDraggingRef.current = true;
+
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        touchTrackingRef.current = {
+          isPinching: false,
+          lastX: t.clientX,
+          lastY: t.clientY,
+          startX: t.clientX,
+          startY: t.clientY,
+          startTime: Date.now(),
+          lastPinchDist: 0,
+        };
+      } else if (e.touches.length >= 2) {
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+        touchTrackingRef.current.isPinching = true;
+        touchTrackingRef.current.lastPinchDist = dist;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+
+      if (e.touches.length === 1 && !touchTrackingRef.current.isPinching) {
+        const t = e.touches[0];
+        const deltaX = t.clientX - touchTrackingRef.current.lastX;
+        const deltaY = t.clientY - touchTrackingRef.current.lastY;
+
+        // Smooth revolving: update spherical azimuth & elevation
+        sphericalRef.current.theta -= deltaX * 0.009;
+        sphericalRef.current.phi = Math.max(
+          0.05,
+          Math.min(Math.PI - 0.05, sphericalRef.current.phi - deltaY * 0.009)
+        );
+
+        touchTrackingRef.current.lastX = t.clientX;
+        touchTrackingRef.current.lastY = t.clientY;
+      } else if (e.touches.length >= 2) {
+        // Multi-touch two-finger pinch to zoom in/out of the 3D polyhedron
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+
+        if (touchTrackingRef.current.lastPinchDist > 5 && dist > 5) {
+          const ratio = dist / touchTrackingRef.current.lastPinchDist;
+          // When distance between fingers expands (spreading fingers), ratio > 1 -> camera radius decreases (zooms in)
+          // When fingers pinch together, ratio < 1 -> camera radius increases (zooms out)
+          const newRadius = sphericalRef.current.radius / ratio;
+          sphericalRef.current.radius = Math.max(1.2, Math.min(12, newRadius));
+          touchTrackingRef.current.lastPinchDist = dist;
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+
+      if (e.touches.length === 0) {
+        isDraggingRef.current = false;
+        const duration = Date.now() - touchTrackingRef.current.startTime;
+        const movedDist = Math.hypot(
+          touchTrackingRef.current.lastX - touchTrackingRef.current.startX,
+          touchTrackingRef.current.lastY - touchTrackingRef.current.startY
+        );
+
+        // Clean single tap detection (< 350ms and < 8px moved)
+        if (!touchTrackingRef.current.isPinching && duration < 350 && movedDist < 8) {
+          onSelectFaceRef.current(touchTrackingRef.current.lastX, touchTrackingRef.current.lastY);
+        }
+        touchTrackingRef.current.isPinching = false;
+      } else if (e.touches.length === 1) {
+        // Lifted one finger from pinch: seamlessly switch back to single-finger revolve without camera jumping
+        const t = e.touches[0];
+        touchTrackingRef.current.lastX = t.clientX;
+        touchTrackingRef.current.lastY = t.clientY;
+        touchTrackingRef.current.isPinching = false;
+      }
+    };
+
+    const handleTouchCancel = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      isDraggingRef.current = false;
+      touchTrackingRef.current.isPinching = false;
+    };
+
+    const handleGesturePrevent = (e: Event) => {
+      if (e.cancelable) e.preventDefault();
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    container.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+    container.addEventListener('gesturestart', handleGesturePrevent, { passive: false });
+    container.addEventListener('gesturechange', handleGesturePrevent, { passive: false });
+    container.addEventListener('gestureend', handleGesturePrevent, { passive: false });
+
     // Resize Observer
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
@@ -219,6 +371,13 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
     return () => {
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchCancel);
+      container.removeEventListener('gesturestart', handleGesturePrevent);
+      container.removeEventListener('gesturechange', handleGesturePrevent);
+      container.removeEventListener('gestureend', handleGesturePrevent);
       renderer.dispose();
     };
   }, []);
@@ -410,31 +569,31 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
     settings.opacity,
   ]);
 
-  // Pointer & Raycasting Event Handlers
-  const handlePointerDown = (e: React.PointerEvent) => {
+  // Desktop Mouse & Hover Event Handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
     isDraggingRef.current = true;
     previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (isDraggingRef.current) {
       const deltaX = e.clientX - previousMousePositionRef.current.x;
       const deltaY = e.clientY - previousMousePositionRef.current.y;
 
-      sphericalRef.current.theta -= deltaX * 0.01;
+      sphericalRef.current.theta -= deltaX * 0.009;
       sphericalRef.current.phi = Math.max(
         0.05,
-        Math.min(Math.PI - 0.05, sphericalRef.current.phi - deltaY * 0.01)
+        Math.min(Math.PI - 0.05, sphericalRef.current.phi - deltaY * 0.009)
       );
 
       previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
       return;
     }
 
-    // Hover raycasting
+    // Hover raycasting for mouse cursor
     if (!containerRef.current || !cameraRef.current || faceMeshesRef.current.length === 0) return;
     const rect = containerRef.current.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -452,31 +611,22 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     const wasDraggingDist = Math.hypot(
       e.clientX - previousMousePositionRef.current.x,
       e.clientY - previousMousePositionRef.current.y
     );
     isDraggingRef.current = false;
-    try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
 
-    // If it was a clean click (minimal drag distance), pick face!
-    if (wasDraggingDist < 5 && containerRef.current && cameraRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
-      const intersects = raycaster.intersectObjects(faceMeshesRef.current, false);
-
-      if (intersects.length > 0) {
-        const hitFace = intersects[0].object.userData.faceIndex;
-        onSelectFace(hitFace);
-      }
+    // Clean mouse click selects face
+    if (wasDraggingDist < 5) {
+      pickFaceAtCoords(e.clientX, e.clientY);
     }
+  };
+
+  const handleMouseLeave = () => {
+    isDraggingRef.current = false;
+    setHoveredFace(null);
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -490,17 +640,19 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
   return (
     <div
       id="polyhedron-3d-viewer-container"
-      className={`select-none transition-all duration-200 flex flex-col overflow-hidden relative w-full h-full ${
+      className={`select-none transition-all duration-200 flex flex-col overflow-hidden relative w-full h-full touch-none ${
         isLightMode ? 'bg-[#fcfbf9]' : 'bg-slate-950'
       }`}
     >
       {/* 3D WebGL Canvas Container */}
       <div
         ref={containerRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing flex-1"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        className="w-full h-full cursor-grab active:cursor-grabbing flex-1 touch-none select-none overscroll-none"
+        style={{ touchAction: 'none' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         onWheel={handleWheel}
       />
 
@@ -542,7 +694,7 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
           </div>
         )}
 
-        {/* Camera Quick Angles & Auto-Rotate */}
+        {/* Camera Quick Angles, Quick Zoom & Auto-Rotate */}
         <div className={`pointer-events-auto flex items-center gap-0.5 sm:gap-1 backdrop-blur-md p-0.5 sm:p-1 rounded-xl border shadow-sm text-xs ${
           isLightMode
             ? 'bg-white/95 border-stone-200/90 text-stone-700'
@@ -577,6 +729,32 @@ export const Polyhedron3DViewer: React.FC<Polyhedron3DViewerProps> = ({
             title="Top View"
           >
             Top
+          </button>
+          <div className={`w-[1px] h-4 mx-0.5 ${isLightMode ? 'bg-stone-200' : 'bg-slate-700'}`} />
+          {/* Touch-friendly and click-friendly Zoom In and Out buttons */}
+          <button
+            id="view-zoom-in-btn"
+            onClick={() => {
+              sphericalRef.current.radius = Math.max(1.2, sphericalRef.current.radius * 0.82);
+            }}
+            className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
+              isLightMode ? 'hover:bg-stone-100 text-stone-600 hover:text-stone-900' : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+            }`}
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            id="view-zoom-out-btn"
+            onClick={() => {
+              sphericalRef.current.radius = Math.min(12, sphericalRef.current.radius * 1.22);
+            }}
+            className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
+              isLightMode ? 'hover:bg-stone-100 text-stone-600 hover:text-stone-900' : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+            }`}
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <div className={`w-[1px] h-4 mx-0.5 ${isLightMode ? 'bg-stone-200' : 'bg-slate-700'}`} />
           <button

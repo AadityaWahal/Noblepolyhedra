@@ -1,8 +1,25 @@
 @import "tailwindcss";
 
 @layer base {
+  html, body {
+    touch-action: manipulation;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  canvas {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 
@@ -13,3 +30,4 @@
 .font-classic-serif {
   font-family: 'Newsreader', Georgia, serif;
 }
+
