@@ -19,6 +19,9 @@ import { CustomShapeModal } from './components/CustomShapeModal';
 import { MathTheoryModal } from './components/MathTheoryModal';
 import { Maximized2DPlaneModal } from './components/Maximized2DPlaneModal';
 import { ExhibitionCalculatorModal } from './components/ExhibitionCalculatorModal';
+import { UserCollectionsModal } from './components/UserCollectionsModal';
+import { AppAuthProvider } from './context/AuthContext';
+import { CollectionsProvider } from './context/CollectionsContext';
 import { updateDocumentHeadSEO, updateHomePageSEO } from './utils/seo';
 import { X, ChevronLeft, ChevronRight, Loader2, Info } from 'lucide-react';
 
@@ -85,7 +88,19 @@ function getInitialSystemTheme(): boolean {
   return true; // default light mode
 }
 
-export default function App() {
+interface NoblePolyhedraStudioProps {
+  isCollectionsOpen: boolean;
+  setIsCollectionsOpen: (open: boolean) => void;
+  collectionsInitialTab: 'favorites' | 'bookmarks' | 'keys';
+  onOpenCollections: (tab?: 'favorites' | 'bookmarks' | 'keys') => void;
+}
+
+function NoblePolyhedraStudio({
+  isCollectionsOpen,
+  setIsCollectionsOpen,
+  collectionsInitialTab,
+  onOpenCollections,
+}: NoblePolyhedraStudioProps) {
   const initialRoute = useMemo(() => resolveInitialRoute(), []);
   const initialThemeIsLight = useMemo(() => getInitialSystemTheme(), []);
   const [currentPage, setCurrentPage] = useState<'home' | 'viewer'>(initialRoute.page);
@@ -460,12 +475,26 @@ export default function App() {
 
   if (currentPage === 'home') {
     return (
-      <HomePage
-        allModelsMap={allModelsMap}
-        onStartViewer={handleStartViewer}
-        isLightMode={isLightMode}
-        onToggleLightMode={handleToggleLightMode}
-      />
+      <>
+        <HomePage
+          allModelsMap={allModelsMap}
+          onStartViewer={handleStartViewer}
+          isLightMode={isLightMode}
+          onToggleLightMode={handleToggleLightMode}
+          onOpenCollections={onOpenCollections}
+        />
+        <UserCollectionsModal
+          isOpen={isCollectionsOpen}
+          onClose={() => setIsCollectionsOpen(false)}
+          allModelsMap={allModelsMap}
+          onSelectModel={modelId => {
+            handleSelectModelById(modelId);
+            setCurrentPage('viewer');
+          }}
+          isLightMode={isLightMode}
+          initialTab={collectionsInitialTab}
+        />
+      </>
     );
   }
 
@@ -486,6 +515,7 @@ export default function App() {
         panelMode={panelMode}
         onChangePanelMode={setPanelMode}
         onOpenExhibitionCalculator={() => setIsExhibitionCalcOpen(true)}
+        onOpenCollections={onOpenCollections}
         isLightMode={isLightMode}
         onToggleLightMode={handleToggleLightMode}
         isCleanView={isCleanView}
@@ -687,6 +717,39 @@ export default function App() {
           setViewMode('single');
         }}
       />
+
+      {/* User Collections, Bookmarks & Clerk/MongoDB Keys Modal */}
+      <UserCollectionsModal
+        isOpen={isCollectionsOpen}
+        onClose={() => setIsCollectionsOpen(false)}
+        allModelsMap={allModelsMap}
+        onSelectModel={handleSelectModelById}
+        isLightMode={isLightMode}
+        initialTab={collectionsInitialTab}
+      />
     </div>
+  );
+}
+
+export default function App() {
+  const [isCollectionsOpen, setIsCollectionsOpen] = useState<boolean>(false);
+  const [collectionsInitialTab, setCollectionsInitialTab] = useState<'favorites' | 'bookmarks' | 'keys'>('favorites');
+
+  const handleOpenCollections = useCallback((tab: 'favorites' | 'bookmarks' | 'keys' = 'favorites') => {
+    setCollectionsInitialTab(tab);
+    setIsCollectionsOpen(true);
+  }, []);
+
+  return (
+    <AppAuthProvider onShowConfigModal={() => handleOpenCollections('keys')}>
+      <CollectionsProvider>
+        <NoblePolyhedraStudio
+          isCollectionsOpen={isCollectionsOpen}
+          setIsCollectionsOpen={setIsCollectionsOpen}
+          collectionsInitialTab={collectionsInitialTab}
+          onOpenCollections={handleOpenCollections}
+        />
+      </CollectionsProvider>
+    </AppAuthProvider>
   );
 }

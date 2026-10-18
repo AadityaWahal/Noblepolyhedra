@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PolyShapeAnalysis, NoblePolyhedron } from '../types';
 import { EasyInspectorPanel } from './EasyInspectorPanel';
 import { AdvancedInspectorPanel } from './AdvancedInspectorPanel';
+import { useCollections } from '../context/CollectionsContext';
 import {
   Compass,
   ChevronLeft,
@@ -9,6 +10,8 @@ import {
   Smile,
   Cpu,
   Sparkles,
+  Heart,
+  Bookmark,
 } from 'lucide-react';
 
 interface PolyShapeInspectorProps {
@@ -47,6 +50,10 @@ export const PolyShapeInspector: React.FC<PolyShapeInspectorProps> = ({
       setInternalPanelMode(mode);
     }
   };
+
+  const { isFavorite, isBookmarked, toggleFavorite, toggleBookmark } = useCollections();
+  const isFav = isFavorite(polyhedron.id);
+  const isBmk = isBookmarked(polyhedron.id);
 
   const totalFaces = polyhedron.faces?.length || 1;
 
@@ -162,6 +169,37 @@ export const PolyShapeInspector: React.FC<PolyShapeInspectorProps> = ({
               title="Next Face (Shortcut: ↓)"
             >
               <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Quick Favorite & Bookmark actions for inspected shape */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => toggleFavorite(polyhedron.id)}
+              className={`p-1 rounded-md border text-xs transition-colors ${
+                isFav
+                  ? 'bg-rose-500/15 border-rose-400 text-rose-500'
+                  : isLightMode
+                    ? 'bg-white border-stone-200 text-stone-400 hover:text-rose-500'
+                    : 'bg-slate-950/80 border-slate-700/60 text-slate-400 hover:text-rose-400'
+              }`}
+              title={isFav ? "Remove from Favorites" : "Add to Favorites"}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </button>
+
+            <button
+              onClick={() => toggleBookmark(polyhedron.id)}
+              className={`p-1 rounded-md border text-xs transition-colors ${
+                isBmk
+                  ? 'bg-amber-500/15 border-amber-400 text-amber-500'
+                  : isLightMode
+                    ? 'bg-white border-stone-200 text-stone-400 hover:text-amber-500'
+                    : 'bg-slate-950/80 border-slate-700/60 text-slate-400 hover:text-amber-400'
+              }`}
+              title={isBmk ? "Remove Bookmark" : "Bookmark this Shape"}
+            >
+              <Bookmark className={`w-3.5 h-3.5 ${isBmk ? 'fill-amber-500 text-amber-500' : ''}`} />
             </button>
           </div>
         </div>

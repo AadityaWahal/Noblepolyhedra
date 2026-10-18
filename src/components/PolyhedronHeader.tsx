@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { NoblePolyhedron, ViewerSettings, ColorTheme, NobleModelSummary } from '../types';
 import { getDiscoveryInfo } from '../utils/nobleDiscovery';
 import { PolyhedronSearchBar } from './PolyhedronSearchBar';
+import { useCollections } from '../context/CollectionsContext';
+import { useAppAuth } from '../context/AuthContext';
 import {
   Sparkles,
   Palette,
@@ -20,6 +22,12 @@ import {
   MoreHorizontal,
   X,
   Home,
+  Heart,
+  Bookmark,
+  LogIn,
+  LogOut,
+  User,
+  Key,
 } from 'lucide-react';
 
 interface PolyhedronHeaderProps {
@@ -32,6 +40,7 @@ interface PolyhedronHeaderProps {
   panelMode?: 'easy' | 'advanced';
   onChangePanelMode?: (mode: 'easy' | 'advanced') => void;
   onOpenExhibitionCalculator?: () => void;
+  onOpenCollections?: (tab?: 'favorites' | 'bookmarks' | 'keys') => void;
   isLightMode?: boolean;
   onToggleLightMode?: () => void;
   isCleanView?: boolean;
@@ -70,6 +79,7 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
   onOpenMathInfo,
   onOpenDiscoveryGuide,
   onOpenExhibitionCalculator,
+  onOpenCollections,
   isLightMode = true,
   onToggleLightMode,
   isCleanView = false,
@@ -93,6 +103,28 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const discoveryInfo = getDiscoveryInfo(currentModel);
+
+  const {
+    favorites,
+    bookmarks,
+    isFavorite,
+    isBookmarked,
+    toggleFavorite,
+    toggleBookmark,
+  } = useCollections();
+
+  const {
+    isClerkConfigured,
+    isSignedIn,
+    userName,
+    userEmail,
+    userAvatar,
+    openSignIn,
+    signOut,
+  } = useAppAuth();
+
+  const currentIsFav = isFavorite(currentModel.id);
+  const currentIsBookmarked = isBookmarked(currentModel.id);
 
   return (
     <header
@@ -227,6 +259,61 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
             </button>
           </div>
 
+          {/* Favorite Toggle for Current Shape */}
+          {viewMode === 'single' && (
+            <button
+              onClick={() => toggleFavorite(currentModel.id)}
+              className={`p-1.5 rounded-lg border text-xs transition-all ${
+                currentIsFav
+                  ? 'bg-rose-500/15 border-rose-400 text-rose-500 shadow-xs'
+                  : isLightMode
+                    ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-500 hover:text-rose-500'
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-rose-400'
+              }`}
+              title={currentIsFav ? `Remove ${currentModel.id} from Favorites` : `Add ${currentModel.id} to Favorites`}
+            >
+              <Heart className={`w-3.5 h-3.5 ${currentIsFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </button>
+          )}
+
+          {/* Bookmark Toggle for Current Shape */}
+          {viewMode === 'single' && (
+            <button
+              onClick={() => toggleBookmark(currentModel.id)}
+              className={`p-1.5 rounded-lg border text-xs transition-all ${
+                currentIsBookmarked
+                  ? 'bg-amber-500/15 border-amber-400 text-amber-500 shadow-xs'
+                  : isLightMode
+                    ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-500 hover:text-amber-500'
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-amber-400'
+              }`}
+              title={currentIsBookmarked ? `Remove ${currentModel.id} from Bookmarks` : `Bookmark ${currentModel.id} for Study`}
+            >
+              <Bookmark className={`w-3.5 h-3.5 ${currentIsBookmarked ? 'fill-amber-500 text-amber-500' : ''}`} />
+            </button>
+          )}
+
+          {/* Collections / Saved Drawer Button */}
+          {onOpenCollections && (
+            <button
+              onClick={() => onOpenCollections('favorites')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+                isLightMode
+                  ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+              }`}
+              title="View Bookmarked & Favorite Polyhedra"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[11px] font-semibold">Saved</span>
+              {(favorites.length > 0 || bookmarks.length > 0) && (
+                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
+                  {favorites.length + bookmarks.length}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* INFO SLIDE BAR TOGGLE BUTTON */}
           {viewMode === 'single' && (
             <button
@@ -344,10 +431,56 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
               {isLightMode ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
             </button>
           )}
+
+          {/* Clerk User Login / Profile Button */}
+          {isSignedIn ? (
+            <button
+              onClick={() => onOpenCollections?.('keys')}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs transition-colors shrink-0 ${
+                isLightMode
+                  ? 'bg-amber-50/80 hover:bg-amber-100 border-amber-200 text-amber-900'
+                  : 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/30 text-amber-300'
+              }`}
+              title={`Logged in as ${userName} (${userEmail || 'Clerk'}). Click for Cloud Sync & Settings`}
+            >
+              {userAvatar ? (
+                <img src={userAvatar} alt={userName} className="w-4 h-4 rounded-full object-cover shrink-0" />
+              ) : (
+                <User className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              )}
+              <span className="text-[11px] font-semibold max-w-[70px] truncate">{userName.split(' ')[0]}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => (isClerkConfigured ? openSignIn() : onOpenCollections?.('keys'))}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
+              title="Sign In with Clerk to sync bookmarks & favorites"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Sign In</span>
+            </button>
+          )}
         </div>
 
         {/* MOBILE CONTROLS (Phones): Compact, zero cut-off, instant access to all tools */}
         <div className="flex md:hidden items-center gap-1">
+          {/* Quick Favorite on Mobile */}
+          {viewMode === 'single' && (
+            <button
+              onClick={() => toggleFavorite(currentModel.id)}
+              className={`p-1.5 rounded-lg border text-xs transition-colors shrink-0 ${
+                currentIsFav
+                  ? 'bg-rose-500/15 border-rose-400 text-rose-500'
+                  : isLightMode
+                    ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-500'
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400'
+              }`}
+              title={currentIsFav ? "Remove Favorite" : "Add to Favorites"}
+            >
+              <Heart className={`w-3.5 h-3.5 ${currentIsFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </button>
+          )}
+
           {/* Smart View Mode Toggle: Single button switches between Single 3D and Multi Grid */}
           <button
             onClick={() => onChangeViewMode(viewMode === 'single' ? 'multi' : 'single')}
@@ -427,7 +560,7 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
                 />
 
                 <div
-                  className={`fixed sm:absolute right-2 left-2 sm:left-auto top-16 sm:top-full mt-1 sm:w-64 rounded-xl border p-3 shadow-2xl z-50 text-xs animate-in fade-in duration-150 ${
+                  className={`fixed sm:absolute right-2 left-2 sm:left-auto top-16 sm:top-full mt-1 sm:w-72 max-h-[82vh] overflow-y-auto rounded-xl border p-3 shadow-2xl z-50 text-xs animate-in fade-in duration-150 ${
                     isLightMode
                       ? 'bg-white border-stone-200 text-stone-800'
                       : 'bg-slate-900 border-slate-700 text-slate-200'
@@ -445,7 +578,106 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
                     </button>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
+                    {/* Clerk User Account / Sign In Block */}
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 ${
+                      isLightMode ? 'bg-amber-50/60 border-amber-200/80' : 'bg-slate-800/80 border-slate-700'
+                    }`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        {userAvatar ? (
+                          <img src={userAvatar} alt={userName} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-amber-600 text-white flex items-center justify-center shrink-0">
+                            <User className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[11px] truncate">
+                            {isSignedIn ? userName : 'Guest Explorer'}
+                          </p>
+                          <p className="text-[10px] text-stone-500 dark:text-slate-400 truncate">
+                            {isSignedIn ? (userEmail || 'Clerk Member') : 'Sign in to sync saved shapes'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {isSignedIn ? (
+                        <button
+                          onClick={() => {
+                            signOut();
+                            setShowMobileMenu(false);
+                          }}
+                          className="px-2 py-1 rounded border border-rose-300 dark:border-rose-800 text-[10px] text-rose-600 dark:text-rose-400 hover:bg-rose-50 font-medium shrink-0"
+                        >
+                          Sign Out
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (isClerkConfigured) openSignIn();
+                            else onOpenCollections?.('keys');
+                            setShowMobileMenu(false);
+                          }}
+                          className="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-semibold shrink-0 shadow-xs"
+                        >
+                          Sign In
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Saved Collections Row */}
+                    {onOpenCollections && (
+                      <button
+                        onClick={() => {
+                          onOpenCollections('favorites');
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-stone-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-slate-750 text-left transition-colors font-medium"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Bookmark className="w-4 h-4 text-amber-500 fill-amber-500/20" />
+                          <span>Saved Bookmarks &amp; Favorites</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 font-semibold">
+                            ❤️ {favorites.length}
+                          </span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold">
+                            🔖 {bookmarks.length}
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Current Shape Actions: Favorite & Bookmark */}
+                    {viewMode === 'single' && (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={() => toggleFavorite(currentModel.id)}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border text-[11px] font-medium transition-colors ${
+                            currentIsFav
+                              ? 'bg-rose-500/15 border-rose-400 text-rose-600 dark:text-rose-400 font-semibold'
+                              : 'border-stone-200 dark:border-slate-800 hover:bg-stone-50 dark:hover:bg-slate-800 text-stone-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${currentIsFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          <span>{currentIsFav ? 'Favorited' : 'Favorite'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => toggleBookmark(currentModel.id)}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border text-[11px] font-medium transition-colors ${
+                            currentIsBookmarked
+                              ? 'bg-amber-500/15 border-amber-400 text-amber-600 dark:text-amber-400 font-semibold'
+                              : 'border-stone-200 dark:border-slate-800 hover:bg-stone-50 dark:hover:bg-slate-800 text-stone-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <Bookmark className={`w-3.5 h-3.5 ${currentIsBookmarked ? 'fill-amber-500 text-amber-500' : ''}`} />
+                          <span>{currentIsBookmarked ? 'Bookmarked' : 'Bookmark'}</span>
+                        </button>
+                      </div>
+                    )}
+
                     {/* Return Home Option */}
                     {onNavigateHome && (
                       <button
@@ -542,6 +774,20 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
                       >
                         <Calculator className="w-4 h-4 text-amber-600" />
                         <span>Face Dimensions Calculator</span>
+                      </button>
+                    )}
+
+                    {/* Keys & Cloud Setup */}
+                    {onOpenCollections && (
+                      <button
+                        onClick={() => {
+                          onOpenCollections('keys');
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-stone-100 dark:hover:bg-slate-800 text-left transition-colors text-amber-700 dark:text-amber-400 font-medium"
+                      >
+                        <Key className="w-4 h-4" />
+                        <span>Clerk &amp; MongoDB Keys (Vercel)</span>
                       </button>
                     )}
 

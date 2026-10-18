@@ -3,6 +3,8 @@ import { NoblePolyhedron, NobleModelSummary } from '../types';
 import { SAMPLE_MODELS } from '../data/sampleModels';
 import { getAllPolyhedraGroups, PolyhedronOrbitGroup } from '../data/polyhedraGroups';
 import { MiniPolyhedron3D } from './MiniPolyhedron3D';
+import { useCollections } from '../context/CollectionsContext';
+import { useAppAuth } from '../context/AuthContext';
 import {
   Box,
   Boxes,
@@ -22,6 +24,12 @@ import {
   Filter,
   Menu,
   X,
+  Heart,
+  Bookmark,
+  LogIn,
+  LogOut,
+  User,
+  Key,
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -29,6 +37,7 @@ interface HomePageProps {
   onStartViewer: (modelId?: string) => void;
   isLightMode: boolean;
   onToggleLightMode: () => void;
+  onOpenCollections?: (tab?: 'favorites' | 'bookmarks' | 'keys') => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -36,6 +45,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onStartViewer,
   isLightMode,
   onToggleLightMode,
+  onOpenCollections,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<
@@ -43,6 +53,25 @@ export const HomePage: React.FC<HomePageProps> = ({
   >('all');
   const [activePreviewModelId, setActivePreviewModelId] = useState<string>('D-1');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const {
+    favorites,
+    bookmarks,
+    isFavorite,
+    isBookmarked,
+    toggleFavorite,
+    toggleBookmark,
+  } = useCollections();
+
+  const {
+    isClerkConfigured,
+    isSignedIn,
+    userName,
+    userEmail,
+    userAvatar,
+    openSignIn,
+    signOut,
+  } = useAppAuth();
 
   const groups = useMemo(() => getAllPolyhedraGroups(), []);
 
@@ -166,6 +195,56 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Right Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Saved Bookmarks & Favorites Button */}
+            {onOpenCollections && (
+              <button
+                onClick={() => onOpenCollections('favorites')}
+                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 shrink-0 text-xs font-medium ${
+                  isLightMode
+                    ? 'border-stone-200 hover:bg-stone-100 text-stone-700'
+                    : 'border-slate-800 hover:bg-slate-800 text-slate-300'
+                }`}
+                title="View Saved Bookmarks & Favorites"
+              >
+                <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
+                <span className="hidden sm:inline font-semibold">Saved</span>
+                {(favorites.length > 0 || bookmarks.length > 0) && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
+                    {favorites.length + bookmarks.length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Clerk User Login / Profile Button */}
+            {isSignedIn ? (
+              <button
+                onClick={() => onOpenCollections?.('keys')}
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs transition-colors shrink-0 ${
+                  isLightMode
+                    ? 'bg-amber-50/80 hover:bg-amber-100 border-amber-200 text-amber-900'
+                    : 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/30 text-amber-300'
+                }`}
+                title={`Logged in as ${userName}. Click for Cloud Sync & Settings`}
+              >
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userName} className="w-4 h-4 rounded-full object-cover shrink-0" />
+                ) : (
+                  <User className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                )}
+                <span className="hidden sm:inline text-xs font-semibold max-w-[70px] truncate">{userName.split(' ')[0]}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => (isClerkConfigured ? openSignIn() : onOpenCollections?.('keys'))}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
+                title="Sign In with Clerk"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sign In</span>
+              </button>
+            )}
+
             {/* Device-synced Theme Toggle */}
             <button
               onClick={onToggleLightMode}
@@ -209,7 +288,77 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Mobile Navigation Dropdown Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-stone-200/80 dark:border-slate-800/80 bg-white/98 dark:bg-slate-900/98 backdrop-blur-lg px-4 py-3 space-y-2.5 animate-in fade-in duration-150 shadow-xl">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-slate-500 font-classic-heading">
+            {/* User Account Bar in Mobile Drawer */}
+            <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
+              isLightMode ? 'bg-amber-50/70 border-amber-200/80' : 'bg-slate-800/80 border-slate-700'
+            }`}>
+              <div className="flex items-center gap-2 min-w-0">
+                {userAvatar ? (
+                  <img src={userAvatar} alt={userName} className="w-7 h-7 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-amber-600 text-white flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold text-xs truncate">
+                    {isSignedIn ? userName : 'Guest Explorer'}
+                  </p>
+                  <p className="text-[10px] text-stone-500 dark:text-slate-400 truncate">
+                    {isSignedIn ? (userEmail || 'Clerk Member') : 'Sign in with Clerk'}
+                  </p>
+                </div>
+              </div>
+
+              {isSignedIn ? (
+                <button
+                  onClick={() => {
+                    signOut();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-800 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 font-medium shrink-0"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (isClerkConfigured) openSignIn();
+                    else onOpenCollections?.('keys');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-3 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 shadow-xs"
+                >
+                  Sign In
+                </button>
+              )}
+            </div>
+
+            {/* Saved Bookmarks & Favorites Quick Launch */}
+            {onOpenCollections && (
+              <button
+                onClick={() => {
+                  onOpenCollections('favorites');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-stone-100 dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <Bookmark className="w-4 h-4 text-amber-500" />
+                  <span>Saved Bookmarks &amp; Favorites</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold">
+                    ❤️ {favorites.length}
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">
+                    🔖 {bookmarks.length}
+                  </span>
+                </div>
+              </button>
+            )}
+
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-slate-500 font-classic-heading pt-1">
               Page Navigation &amp; Options
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -366,8 +515,40 @@ export const HomePage: React.FC<HomePageProps> = ({
                         Interactive 3D Solid Preview
                       </span>
                     </div>
-                    <div className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                      Shape {previewModel?.id || 'D-1'}
+                    <div className="flex items-center gap-1.5">
+                      {previewModel && (
+                        <>
+                          <button
+                            onClick={() => toggleFavorite(previewModel.id)}
+                            className={`p-1 rounded-md border text-xs transition-colors ${
+                              isFavorite(previewModel.id)
+                                ? 'bg-rose-500/15 border-rose-400 text-rose-500'
+                                : isLightMode
+                                  ? 'bg-stone-100 hover:bg-stone-200 border-stone-200 text-stone-500'
+                                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400'
+                            }`}
+                            title={isFavorite(previewModel.id) ? "Remove Favorite" : "Add to Favorites"}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${isFavorite(previewModel.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          </button>
+                          <button
+                            onClick={() => toggleBookmark(previewModel.id)}
+                            className={`p-1 rounded-md border text-xs transition-colors ${
+                              isBookmarked(previewModel.id)
+                                ? 'bg-amber-500/15 border-amber-400 text-amber-500'
+                                : isLightMode
+                                  ? 'bg-stone-100 hover:bg-stone-200 border-stone-200 text-stone-500'
+                                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400'
+                            }`}
+                            title={isBookmarked(previewModel.id) ? "Remove Bookmark" : "Add to Bookmarks"}
+                          >
+                            <Bookmark className={`w-3.5 h-3.5 ${isBookmarked(previewModel.id) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                          </button>
+                        </>
+                      )}
+                      <div className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                        Shape {previewModel?.id || 'D-1'}
+                      </div>
                     </div>
                   </div>
 

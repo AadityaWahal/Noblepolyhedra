@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { NobleModelSummary, NoblePolyhedron } from '../types';
 import { MiniPolyhedron3D } from './MiniPolyhedron3D';
 import { getDiscoveryInfo } from '../utils/nobleDiscovery';
+import { useCollections } from '../context/CollectionsContext';
 import {
   Search,
   Sparkles,
@@ -12,6 +13,8 @@ import {
   Maximize2,
   SlidersHorizontal,
   Info,
+  Heart,
+  Bookmark,
 } from 'lucide-react';
 
 interface PolyhedronMultiViewProps {
@@ -37,6 +40,16 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
   discoveryFilter,
   onChangeDiscoveryFilter,
 }) => {
+  const {
+    favorites,
+    bookmarks,
+    isFavorite,
+    isBookmarked,
+    toggleFavorite,
+    toggleBookmark,
+  } = useCollections();
+
+  const [collectionFilter, setCollectionFilter] = useState<'all' | 'favorites' | 'bookmarks'>('all');
   const [orbitFilter, setOrbitFilter] = useState<string>('all');
   const [faceSidesFilter, setFaceSidesFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'id' | 'faces' | 'vertices' | 'sides'>('id');
@@ -60,6 +73,10 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
   const filteredModels = useMemo(() => {
     return models
       .filter(m => {
+        // Collection filter (Favorites / Bookmarks)
+        if (collectionFilter === 'favorites' && !favorites.includes(m.id)) return false;
+        if (collectionFilter === 'bookmarks' && !bookmarks.includes(m.id)) return false;
+
         // Discovery filter
         if (discoveryFilter === 'newly-discovered' && m.dof !== 2) return false;
         if (discoveryFilter === 'previously-discovered' && m.dof === 2) return false;
@@ -96,7 +113,7 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
         }
         return sortAsc ? diff : -diff;
       });
-  }, [models, discoveryFilter, orbitFilter, faceSidesFilter, searchQuery, sortBy, sortAsc]);
+  }, [models, collectionFilter, favorites, bookmarks, discoveryFilter, orbitFilter, faceSidesFilter, searchQuery, sortBy, sortAsc]);
 
   return (
     <div
@@ -116,6 +133,41 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
             <Layers className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span>{filteredModels.length} / {models.length}</span>
           </span>
+
+          {/* Quick Collection Filters (Favorites & Bookmarks) */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setCollectionFilter(prev => prev === 'favorites' ? 'all' : 'favorites')}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                collectionFilter === 'favorites'
+                  ? 'bg-rose-500 text-white font-semibold shadow-xs'
+                  : isLightMode
+                    ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
+              title="Show only Favorited Shapes"
+            >
+              <Heart className={`w-3 h-3 ${collectionFilter === 'favorites' ? 'fill-white text-white' : 'text-rose-500'}`} />
+              <span className="hidden xs:inline">Favs</span>
+              <span className="font-mono text-[10px]">({favorites.length})</span>
+            </button>
+
+            <button
+              onClick={() => setCollectionFilter(prev => prev === 'bookmarks' ? 'all' : 'bookmarks')}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                collectionFilter === 'bookmarks'
+                  ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                  : isLightMode
+                    ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
+              title="Show only Bookmarked Shapes"
+            >
+              <Bookmark className={`w-3 h-3 ${collectionFilter === 'bookmarks' ? 'fill-white text-white' : 'text-amber-500'}`} />
+              <span className="hidden xs:inline">Saved</span>
+              <span className="font-mono text-[10px]">({bookmarks.length})</span>
+            </button>
+          </div>
 
           <span className="text-stone-300 dark:text-slate-700 hidden xs:inline">|</span>
 
@@ -313,6 +365,43 @@ export const PolyhedronMultiView: React.FC<PolyhedronMultiViewProps> = ({
                           </>
                         )}
                       </span>
+                    </div>
+
+                    {/* Top right Favorite & Bookmark buttons */}
+                    <div className="absolute top-1.5 right-2 z-10 flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(model.id);
+                        }}
+                        className={`p-1 rounded-md backdrop-blur-xs transition-colors shadow-2xs ${
+                          isFavorite(model.id)
+                            ? 'bg-rose-500/25 text-rose-500 border border-rose-400/60'
+                            : isLightMode
+                              ? 'bg-white/80 text-stone-400 hover:text-rose-500 hover:bg-white border border-stone-200'
+                              : 'bg-slate-900/80 text-slate-400 hover:text-rose-400 hover:bg-slate-800 border border-slate-700'
+                        }`}
+                        title={isFavorite(model.id) ? "Remove from Favorites" : "Add to Favorites"}
+                      >
+                        <Heart className={`w-3 h-3 ${isFavorite(model.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBookmark(model.id);
+                        }}
+                        className={`p-1 rounded-md backdrop-blur-xs transition-colors shadow-2xs ${
+                          isBookmarked(model.id)
+                            ? 'bg-amber-500/25 text-amber-500 border border-amber-400/60'
+                            : isLightMode
+                              ? 'bg-white/80 text-stone-400 hover:text-amber-500 hover:bg-white border border-stone-200'
+                              : 'bg-slate-900/80 text-slate-400 hover:text-amber-400 hover:bg-slate-800 border border-slate-700'
+                        }`}
+                        title={isBookmarked(model.id) ? "Remove Bookmark" : "Bookmark this Shape"}
+                      >
+                        <Bookmark className={`w-3 h-3 ${isBookmarked(model.id) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                      </button>
                     </div>
 
                     {/* Hover indicator: Click to open single 3D view */}
