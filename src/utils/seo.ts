@@ -278,6 +278,44 @@ export function updateHomePageSEO(baseUrl?: string) {
         keywords:
           'noble polyhedra, noble polyhedron, 3D figure, 3D solid shape, geometry studio, Webtigo, Aaditya Wahal, Member of Multiverse, Akshat Wahal',
       },
+      {
+        '@type': 'FAQPage',
+        '@id': `${origin}/#faq`,
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: 'What is a Noble Polyhedron in geometry?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'A noble polyhedron is a 3D geometric solid that possesses dual transitivity: it is simultaneously isogonal (all vertices are symmetrically equivalent) and isohedral (all faces are congruent and symmetrically equivalent).',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'How do noble polyhedra differ from Archimedean and Catalan solids?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Archimedean solids are isogonal but not isohedral. Catalan solids are isohedral but not isogonal. Noble polyhedra uniquely bridge this duality by fulfilling both criteria simultaneously.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'What does Degree of Freedom (0-DoF, 1-DoF, 2-DoF) signify?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Degree of Freedom measures how many independent continuous variables can deform a polyhedron without breaking its nobility. 0-DoF polyhedra are rigid; 1-DoF polyhedra form continuous curves; 2-DoF polyhedra form continuous 2D families.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'Who discovered the newly documented continuous 2-DoF polyhedra?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'The continuous 2-DoF polyhedra families were proven in academic literature by Mirko Stevanovic in 2020. The initiative to turn this discovery into an interactive public 3D catalog was championed by Akshat Wahal, and created by Member of Multiverse (Aaditya Wahal) under Webtigo Group.',
+            },
+          },
+        ],
+      },
     ],
   };
 

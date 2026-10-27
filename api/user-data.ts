@@ -2,7 +2,7 @@ import { connectToDatabase } from './_db';
 
 interface UserDataPayload {
   userId: string;
-  action?: 'toggleFavorite' | 'toggleBookmark' | 'syncAll' | 'clear';
+  action?: 'toggleFavorite' | 'toggleBookmark' | 'syncAll' | 'clear' | 'clearFavorites' | 'clearBookmarks';
   shapeId?: string;
   favorites?: string[];
   bookmarks?: string[];
@@ -107,6 +107,10 @@ export default async function handler(req: any, res: any) {
           // Merge unique
           updatedBookmarks = Array.from(new Set([...updatedBookmarks, ...bookmarks]));
         }
+      } else if (action === 'clearFavorites') {
+        updatedFavorites = [];
+      } else if (action === 'clearBookmarks') {
+        updatedBookmarks = [];
       } else if (action === 'clear') {
         updatedFavorites = [];
         updatedBookmarks = [];

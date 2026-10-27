@@ -561,7 +561,10 @@ export const UserCollectionsModal: React.FC<UserCollectionsModalProps> = ({
                     Add <strong>CLERK_SECRET_KEY</strong> with your Clerk secret key (e.g. <code>sk_test_...</code>)
                   </li>
                   <li>
-                    Add <strong>MONGODB_URI</strong> with your MongoDB connection string (e.g. <code>mongodb+srv://...</code>)
+                    Add <strong>MONGODB_URI</strong> with your MongoDB connection string (e.g. <code>mongodb+srv://dbuser:mypassword@cluster0.mongodb.net/noble_polyhedra?retryWrites=true&w=majority</code>)
+                    <p className="text-[10.5px] text-amber-700 dark:text-amber-300 mt-0.5">
+                      <strong>Tip:</strong> Be sure to remove the <code>&lt;</code> and <code>&gt;</code> placeholder brackets around your username and password. Our backend now automatically sanitizes special characters!
+                    </p>
                   </li>
                   <li>Redeploy your project. The Vercel serverless functions in <code>/api/user-data.ts</code> will instantly connect to MongoDB!</li>
                 </ol>

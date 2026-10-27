@@ -20,6 +20,7 @@ import { MathTheoryModal } from './components/MathTheoryModal';
 import { Maximized2DPlaneModal } from './components/Maximized2DPlaneModal';
 import { ExhibitionCalculatorModal } from './components/ExhibitionCalculatorModal';
 import { UserCollectionsModal } from './components/UserCollectionsModal';
+import { LegalPolicyModal, LegalTab } from './components/LegalPolicyModal';
 import { AppAuthProvider } from './context/AuthContext';
 import { CollectionsProvider } from './context/CollectionsContext';
 import { updateDocumentHeadSEO, updateHomePageSEO } from './utils/seo';
@@ -150,6 +151,13 @@ function NoblePolyhedraStudio({
   const [isCustomModalOpen, setIsCustomModalOpen] = useState<boolean>(false);
   const [isMathTheoryOpen, setIsMathTheoryOpen] = useState<boolean>(false);
   const [isDiscoveryGuideOpen, setIsDiscoveryGuideOpen] = useState<boolean>(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
+  const [legalInitialTab, setLegalInitialTab] = useState<LegalTab>('privacy');
+
+  const handleOpenLegal = useCallback((tab: LegalTab = 'privacy') => {
+    setLegalInitialTab(tab);
+    setIsLegalModalOpen(true);
+  }, []);
 
   // Viewer Settings
   const [settings, setSettings] = useState<ViewerSettings>({
@@ -482,6 +490,7 @@ function NoblePolyhedraStudio({
           isLightMode={isLightMode}
           onToggleLightMode={handleToggleLightMode}
           onOpenCollections={onOpenCollections}
+          onOpenLegal={handleOpenLegal}
         />
         <UserCollectionsModal
           isOpen={isCollectionsOpen}
@@ -493,6 +502,12 @@ function NoblePolyhedraStudio({
           }}
           isLightMode={isLightMode}
           initialTab={collectionsInitialTab}
+        />
+        <LegalPolicyModal
+          isOpen={isLegalModalOpen}
+          onClose={() => setIsLegalModalOpen(false)}
+          initialTab={legalInitialTab}
+          isLightMode={isLightMode}
         />
       </>
     );
@@ -516,6 +531,7 @@ function NoblePolyhedraStudio({
         onChangePanelMode={setPanelMode}
         onOpenExhibitionCalculator={() => setIsExhibitionCalcOpen(true)}
         onOpenCollections={onOpenCollections}
+        onOpenLegal={handleOpenLegal}
         isLightMode={isLightMode}
         onToggleLightMode={handleToggleLightMode}
         isCleanView={isCleanView}
@@ -726,6 +742,14 @@ function NoblePolyhedraStudio({
         onSelectModel={handleSelectModelById}
         isLightMode={isLightMode}
         initialTab={collectionsInitialTab}
+      />
+
+      {/* Legal, Privacy & Compliance Modal */}
+      <LegalPolicyModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalInitialTab}
+        isLightMode={isLightMode}
       />
     </div>
   );

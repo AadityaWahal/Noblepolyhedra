@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAppAuth } from './AuthContext';
 
 interface CollectionsContextType {
@@ -33,93 +33,126 @@ const CollectionsContext = createContext<CollectionsContextType>({
 
 export const useCollections = () => useContext(CollectionsContext);
 
+// User-scoped Local Storage helpers
+function getLocalFavorites(uid: string): string[] {
+  if (typeof window === 'undefined' || !uid) return [];
+  try {
+    const raw = localStorage.getItem(`noble_favs_${uid}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getLocalBookmarks(uid: string): string[] {
+  if (typeof window === 'undefined' || !uid) return [];
+  try {
+    const raw = localStorage.getItem(`noble_bmks_${uid}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalFavorites(uid: string, favs: string[]) {
+  if (typeof window === 'undefined' || !uid) return;
+  try {
+    localStorage.setItem(`noble_favs_${uid}`, JSON.stringify(favs));
+  } catch (e) {
+    console.warn('Failed to save favorites to local storage', e);
+  }
+}
+
+function saveLocalBookmarks(uid: string, bmks: string[]) {
+  if (typeof window === 'undefined' || !uid) return;
+  try {
+    localStorage.setItem(`noble_bmks_${uid}`, JSON.stringify(bmks));
+  } catch (e) {
+    console.warn('Failed to save bookmarks to local storage', e);
+  }
+}
+
 export const CollectionsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userId, isSignedIn } = useAppAuth();
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('noble_user_favorites');
-      return stored ? JSON.parse(stored) : ['D-1', 'sD-1']; // default favorites
-    } catch {
-      return ['D-1', 'sD-1'];
-    }
-  });
+  const currentUserIdRef = useRef<string>(userId);
 
-  const [bookmarks, setBookmarks] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('noble_user_bookmarks');
-      return stored ? JSON.parse(stored) : ['C-1', 'I-1']; // default bookmarks
-    } catch {
-      return ['C-1', 'I-1'];
-    }
-  });
+  // Initialize with the current user's local store
+  const [favorites, setFavorites] = useState<string[]>(() => getLocalFavorites(userId));
+  const [bookmarks, setBookmarks] = useState<string[]>(() => getLocalBookmarks(userId));
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isMongoConnected, setIsMongoConnected] = useState<boolean>(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
-  // Keep local storage in sync whenever favorites or bookmarks change
-  useEffect(() => {
-    try {
-      localStorage.setItem('noble_user_favorites', JSON.stringify(favorites));
-    } catch (e) {
-      console.warn('Failed to save favorites to local storage', e);
-    }
-  }, [favorites]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('noble_user_bookmarks', JSON.stringify(bookmarks));
-    } catch (e) {
-      console.warn('Failed to save bookmarks to local storage', e);
-    }
-  }, [bookmarks]);
-
   // Synchronize with backend API (MongoDB on Vercel)
-  const refreshFromCloud = useCallback(async () => {
-    if (!userId) return;
+  const refreshFromCloud = useCallback(async (targetUid?: string) => {
+    const target = targetUid || currentUserIdRef.current;
+    if (!target) return;
 
     try {
       setIsSyncing(true);
-      const res = await fetch(`/api/user-data?userId=${encodeURIComponent(userId)}`);
+      const res = await fetch(`/api/user-data?userId=${encodeURIComponent(target)}`);
       if (res.ok) {
         const data = await res.json();
+        
+        // Guard against race conditions if user switched while fetching
+        if (currentUserIdRef.current !== target) return;
+
         setIsMongoConnected(Boolean(data.isMongoConnected));
 
         if (Array.isArray(data.favorites) && Array.isArray(data.bookmarks)) {
-          // If remote has data, merge with local data
-          setFavorites(prev => Array.from(new Set([...prev, ...data.favorites])));
-          setBookmarks(prev => Array.from(new Set([...prev, ...data.bookmarks])));
-          setLastSyncedAt(new Date());
-
-          // If local has items not on server, push a merge back
-          const hasLocalUniqueFavs = favorites.some(id => !data.favorites.includes(id));
-          const hasLocalUniqueBms = bookmarks.some(id => !data.bookmarks.includes(id));
-
-          if ((hasLocalUniqueFavs || hasLocalUniqueBms) && data.isMongoConnected) {
-            await fetch('/api/user-data', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId,
-                action: 'syncAll',
-                favorites,
-                bookmarks,
-              }),
-            });
+          if (data.isMongoConnected) {
+            // MongoDB is active: cloud is authoritative for this specific user
+            setFavorites(data.favorites);
+            setBookmarks(data.bookmarks);
+            saveLocalFavorites(target, data.favorites);
+            saveLocalBookmarks(target, data.bookmarks);
+          } else {
+            // Local storage mode: keep user's local items
+            const localFavs = getLocalFavorites(target);
+            const localBmks = getLocalBookmarks(target);
+            setFavorites(localFavs);
+            setBookmarks(localBmks);
           }
+          setLastSyncedAt(new Date());
         }
       }
     } catch (err) {
-      console.warn('Could not sync collections from cloud (using local storage)', err);
+      console.warn('Could not sync collections from cloud (using user local storage)', err);
     } finally {
       setIsSyncing(false);
     }
-  }, [userId, favorites, bookmarks]);
+  }, []);
 
-  // Initial cloud sync on mount and when user identity changes
+  // When userId changes (user signs in, switches accounts, or logs out to guest):
+  // Immediately switch in-memory state to that user's store and prevent leaking!
   useEffect(() => {
-    refreshFromCloud();
-  }, [userId, isSignedIn]);
+    currentUserIdRef.current = userId;
+
+    // 1. Immediately switch to the new user's isolated local storage
+    const newFavs = getLocalFavorites(userId);
+    const newBmks = getLocalBookmarks(userId);
+    setFavorites(newFavs);
+    setBookmarks(newBmks);
+    setLastSyncedAt(null);
+
+    // 2. Fetch the user's remote data from MongoDB if available
+    refreshFromCloud(userId);
+  }, [userId, isSignedIn, refreshFromCloud]);
+
+  // Keep the current user's local storage in sync whenever their favorites change
+  useEffect(() => {
+    if (userId) {
+      saveLocalFavorites(userId, favorites);
+    }
+  }, [favorites, userId]);
+
+  // Keep the current user's local storage in sync whenever their bookmarks change
+  useEffect(() => {
+    if (userId) {
+      saveLocalBookmarks(userId, bookmarks);
+    }
+  }, [bookmarks, userId]);
 
   const isFavorite = useCallback(
     (shapeId: string) => favorites.includes(shapeId),
@@ -133,21 +166,23 @@ export const CollectionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const toggleFavorite = useCallback(
     async (shapeId: string) => {
+      const activeUid = currentUserIdRef.current;
       setFavorites(prev => {
         const next = prev.includes(shapeId)
           ? prev.filter(id => id !== shapeId)
           : [...prev, shapeId];
+        saveLocalFavorites(activeUid, next);
         return next;
       });
 
-      // Background sync to MongoDB API
-      if (userId) {
+      // Background sync to MongoDB API for this user
+      if (activeUid) {
         try {
           fetch('/api/user-data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId,
+              userId: activeUid,
               action: 'toggleFavorite',
               shapeId,
             }),
@@ -165,26 +200,28 @@ export const CollectionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       }
     },
-    [userId]
+    []
   );
 
   const toggleBookmark = useCallback(
     async (shapeId: string) => {
+      const activeUid = currentUserIdRef.current;
       setBookmarks(prev => {
         const next = prev.includes(shapeId)
           ? prev.filter(id => id !== shapeId)
           : [...prev, shapeId];
+        saveLocalBookmarks(activeUid, next);
         return next;
       });
 
-      // Background sync to MongoDB API
-      if (userId) {
+      // Background sync to MongoDB API for this user
+      if (activeUid) {
         try {
           fetch('/api/user-data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId,
+              userId: activeUid,
               action: 'toggleBookmark',
               shapeId,
             }),
@@ -202,38 +239,42 @@ export const CollectionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       }
     },
-    [userId]
+    []
   );
 
   const clearFavorites = useCallback(async () => {
+    const activeUid = currentUserIdRef.current;
     setFavorites([]);
-    if (userId) {
+    saveLocalFavorites(activeUid, []);
+    if (activeUid) {
       try {
         await fetch('/api/user-data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, action: 'clear' }),
+          body: JSON.stringify({ userId: activeUid, action: 'clearFavorites' }),
         });
       } catch {
         // ignore
       }
     }
-  }, [userId]);
+  }, []);
 
   const clearBookmarks = useCallback(async () => {
+    const activeUid = currentUserIdRef.current;
     setBookmarks([]);
-    if (userId) {
+    saveLocalBookmarks(activeUid, []);
+    if (activeUid) {
       try {
         await fetch('/api/user-data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, action: 'clear' }),
+          body: JSON.stringify({ userId: activeUid, action: 'clearBookmarks' }),
         });
       } catch {
         // ignore
       }
     }
-  }, [userId]);
+  }, []);
 
   return (
     <CollectionsContext.Provider

@@ -28,6 +28,7 @@ import {
   LogOut,
   User,
   Key,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface PolyhedronHeaderProps {
@@ -41,6 +42,7 @@ interface PolyhedronHeaderProps {
   onChangePanelMode?: (mode: 'easy' | 'advanced') => void;
   onOpenExhibitionCalculator?: () => void;
   onOpenCollections?: (tab?: 'favorites' | 'bookmarks' | 'keys') => void;
+  onOpenLegal?: (tab?: 'privacy' | 'terms' | 'cookies' | 'about' | 'contact') => void;
   isLightMode?: boolean;
   onToggleLightMode?: () => void;
   isCleanView?: boolean;
@@ -80,6 +82,7 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
   onOpenDiscoveryGuide,
   onOpenExhibitionCalculator,
   onOpenCollections,
+  onOpenLegal,
   isLightMode = true,
   onToggleLightMode,
   isCleanView = false,
@@ -363,6 +366,21 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
               title="Geometry & Face Dimensions Calculator"
             >
               <Calculator className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Legal, Privacy & Transparency */}
+          {onOpenLegal && (
+            <button
+              onClick={() => onOpenLegal('privacy')}
+              className={`p-1.5 rounded-lg border text-xs transition-colors ${
+                isLightMode
+                  ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+              }`}
+              title="Privacy Policy, Terms & Cookie Preferences"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
             </button>
           )}
 
@@ -788,6 +806,20 @@ export const PolyhedronHeader: React.FC<PolyhedronHeaderProps> = ({
                       >
                         <Key className="w-4 h-4" />
                         <span>Clerk &amp; MongoDB Keys (Vercel)</span>
+                      </button>
+                    )}
+
+                    {/* Legal, Privacy & Cookie Preferences */}
+                    {onOpenLegal && (
+                      <button
+                        onClick={() => {
+                          onOpenLegal('privacy');
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-stone-100 dark:hover:bg-slate-800 text-left transition-colors text-stone-700 dark:text-slate-300 font-medium"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-amber-600" />
+                        <span>Legal, Privacy &amp; Cookies</span>
                       </button>
                     )}
 
